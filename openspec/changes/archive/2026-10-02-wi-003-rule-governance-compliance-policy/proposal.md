@@ -31,4 +31,3 @@ None.
 - Persistence: adds draft and immutable published rule-version tables under the existing Supabase migration authority.
 - Authorization: reuses WI-002 identities and FastAPI role enforcement; operators may inspect and validate but only supervisors may publish.
 - Dependencies: adds a pinned YAML parser if needed; no hosted service, AI provider or external account is introduced.
-

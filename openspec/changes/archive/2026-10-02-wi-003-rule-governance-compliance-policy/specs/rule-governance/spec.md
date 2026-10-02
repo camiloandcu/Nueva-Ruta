@@ -69,4 +69,3 @@ Rollback SHALL create a new draft derived from an earlier published version and 
 #### Scenario: Supervisor rolls back to earlier content
 - **WHEN** a supervisor derives, reviews and publishes a rollback draft from an earlier version
 - **THEN** the new active version has the earlier normalized content, a new version number/hash context and explicit derivation lineage without modifying history
-

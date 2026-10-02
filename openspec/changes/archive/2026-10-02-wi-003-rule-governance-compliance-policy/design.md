@@ -91,4 +91,3 @@ Rollback before later work items is a migration/application revert followed by a
 ## Open Questions
 
 None block proposal review. Exact UI component structure and YAML library version will be selected during implementation without changing the approved lifecycle or policy semantics.
-

@@ -31,4 +31,4 @@
 
 - [x] 5.1 Document the fictional policy, rule lifecycle, schema/version semantics, validation codes and safe rollback procedure.
 - [x] 5.2 Run formatting, lint, type, unit, UI/API integration, migration/reset, database and OpenSpec validation checks and record WI-003 evidence.
-- [ ] 5.3 After implementation verification, archive the completed WI-003 OpenSpec change, sync its specifications and validate the resulting main specs before closing the work item.
+- [x] 5.3 After implementation verification, archive the completed WI-003 OpenSpec change, sync its specifications and validate the resulting main specs before closing the work item.

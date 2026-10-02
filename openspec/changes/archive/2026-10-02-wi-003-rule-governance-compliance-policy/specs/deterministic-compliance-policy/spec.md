@@ -54,4 +54,3 @@ Every deterministic compliance evaluation SHALL return stable violation codes, s
 #### Scenario: Same input produces same evidence
 - **WHEN** the same normalized rule document is evaluated repeatedly under the same schema version
 - **THEN** the ordered compliance result is identical and requires no external service or AI key
-
