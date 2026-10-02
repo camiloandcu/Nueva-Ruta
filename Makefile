@@ -1,4 +1,4 @@
-.PHONY: up down reset verify quality
+.PHONY: up down seed reset verify quality
 
 up:
 	./scripts/local.sh start
@@ -9,9 +9,11 @@ down:
 reset:
 	./scripts/local.sh reset
 
+seed:
+	./scripts/local.sh seed
+
 verify:
 	./scripts/local.sh verify
 
 quality:
 	pnpm quality
-

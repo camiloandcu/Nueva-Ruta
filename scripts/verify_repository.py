@@ -25,12 +25,16 @@ for relative_path in required_paths:
 if any(path.name.lower().startswith("alembic") for path in ROOT.rglob("*")):
     fail("Alembic artifacts are forbidden; Supabase SQL migrations are authoritative")
 
-migration_text = "\n".join(
-    path.read_text(encoding="utf-8") for path in (ROOT / "supabase/migrations").glob("*.sql")
-)
+runtime_migration_text = (
+    ROOT / "supabase/migrations/20261002000000_runtime_baseline.sql"
+).read_text(encoding="utf-8")
 for forbidden_ddl in (r"\bcreate\s+table\b", r"\bcreate\s+type\b", r"\binsert\s+into\b"):
-    if re.search(forbidden_ddl, migration_text, flags=re.IGNORECASE):
+    if re.search(forbidden_ddl, runtime_migration_text, flags=re.IGNORECASE):
         fail(f"WI-001 migration contains forbidden domain DDL/data: {forbidden_ddl}")
+
+domain_migration = ROOT / "supabase/migrations/20261002010000_domain_baseline.sql"
+if not domain_migration.is_file():
+    fail("WI-002 domain migration is missing")
 
 for relative_root in ("apps/web", "infra/n8n"):
     for path in (ROOT / relative_root).rglob("*"):
