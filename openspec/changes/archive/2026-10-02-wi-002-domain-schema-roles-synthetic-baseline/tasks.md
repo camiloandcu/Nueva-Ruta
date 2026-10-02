@@ -30,4 +30,4 @@
 - [x] 5.1 Generate a fixture coverage report that maps every lead case and partner defect category to stable fixture IDs.
 - [x] 5.2 Document demo roles, local credential setup, synthetic-only labels, reserved phone conventions, schema ownership and reset safeguards.
 - [x] 5.3 Run formatting, lint, type, unit, integration, migration-reset and OpenSpec validation checks and record WI-002 verification evidence.
-- [ ] 5.4 After implementation verification, archive the completed WI-002 OpenSpec change, sync its specifications and validate the resulting main specs before closing the work item.
+- [x] 5.4 After implementation verification, archive the completed WI-002 OpenSpec change, sync its specifications and validate the resulting main specs before closing the work item.
