@@ -20,6 +20,19 @@ require_environment() {
   fi
 }
 
+prepare_docker_environment() {
+  local desktop_config="${HOME}/.docker/config.json"
+  if grep -qi microsoft /proc/version \
+    && [[ -f "$desktop_config" ]] \
+    && grep -q '"credsStore"[[:space:]]*:[[:space:]]*"desktop\.exe"' "$desktop_config"; then
+    local public_config="$PROJECT_ROOT/.docker-public"
+    mkdir -p "$public_config"
+    printf '{}\n' > "$public_config/config.json"
+    export DOCKER_CONFIG="$public_config"
+    printf 'info: using an isolated Docker config for public WI-001 images\n'
+  fi
+}
+
 supabase_cli() {
   (cd "$PROJECT_ROOT" && pnpm exec supabase "$@")
 }
@@ -59,8 +72,11 @@ start_stack() {
   require_command pnpm
   require_command curl
   require_environment
+  prepare_docker_environment
 
-  supabase_cli start
+  if ! supabase_cli start >/dev/null; then
+    die "Supabase local failed to start; rerun with pnpm exec supabase start for diagnostics"
+  fi
   write_runtime_environment
   compose up --detach --build
 
@@ -81,6 +97,7 @@ stop_stack() {
   require_command pnpm
   if [[ -f "$PROJECT_ROOT/.env" && -f "$RUNTIME_ENV" ]]; then
     require_command docker
+    prepare_docker_environment
     compose down
   fi
   supabase_cli stop
@@ -119,4 +136,3 @@ case "${1:-}" in
   verify) verify_stack ;;
   *) die "usage: $0 {start|stop|reset|verify}" ;;
 esac
-

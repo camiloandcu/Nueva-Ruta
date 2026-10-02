@@ -3,7 +3,7 @@
 - Work item: `WI-001 — Repository and runtime foundation`
 - Branch: `feat/wi-001-runtime-foundation`
 - Verification date: 2026-10-02 (America/Bogota)
-- Status: implementation complete; container runtime verification pending local Docker integration
+- Status: complete
 
 ## Implemented boundaries
 
@@ -29,21 +29,21 @@
 | Next.js production build | Passed; standalone server artifact generated |
 | Supabase CLI | Installed and pinned at `2.119.0` |
 | Supabase TOML syntax | Parsed successfully |
+| Compose application health | Next.js, FastAPI, n8n and simulator healthy |
+| Supabase health | PostgreSQL, Auth, Studio and Kong healthy |
+| Boundary smoke | Next.js → FastAPI and authenticated Supabase SSR session passed |
+| Migration recovery | Database reset and post-reset authenticated smoke passed |
+| Repeated lifecycle | Start → verify → reset → verify → stop → start → verify → stop passed |
 
 The n8n version was checked against its official `n8n@2.41.3` release before pinning: <https://github.com/n8n-io/n8n/releases/tag/n8n@2.41.3>.
 
-## Pending runtime evidence
+## Startup measurement and environment caveat
 
-Docker Desktop is installed on the host, but its WSL integration is not enabled for this distribution. `docker version` currently returns the Docker Desktop WSL integration instruction instead of a client/server result. Therefore the following claims are intentionally not marked complete:
+The first fully successful `make up` completed in `395.27 s` (`6m35s`) and the verified restart after a complete stop completed in `237.33 s` (`3m57s`). Both are below the 15-minute acceptance target.
 
-- clean Compose build/start/stop;
-- Supabase database reset against running containers;
-- live Next.js → FastAPI → Supabase Auth readiness;
-- live authenticated SSR session smoke;
-- n8n and simulator container health;
-- measured clean startup duration against the 15-minute target.
+The first machine setup exposed a Docker Desktop WSL credential-helper failure while downloading public images. The wrapper now detects that specific WSL configuration and uses an ignored, isolated Docker configuration for the public WI-001 images. Supabase's initial image downloads occurred during the failed diagnostic attempt, so `6m35s` is not claimed as an image-cache-empty benchmark. Total observed cold-image preparation plus the first successful build remained approximately `14m24s`, but network and Docker Desktop conditions can change that figure.
 
-After enabling Docker Desktop → Settings → Resources → WSL Integration for this distribution, run:
+The final verified reviewer sequence is:
 
 ```bash
 cp .env.example .env
@@ -55,5 +55,3 @@ make verify
 make reset
 make down
 ```
-
-Record the clean-start duration here before completing tasks 2.3, 7.1 and 7.3 in the OpenSpec checklist.

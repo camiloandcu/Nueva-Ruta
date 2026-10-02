@@ -8,7 +8,7 @@
 
 - [x] 2.1 Initialize pinned Supabase local configuration for PostgreSQL, Auth and Studio without hosted project linkage.
 - [x] 2.2 Add the authoritative empty baseline SQL migration path and document the prohibition on Alembic or a second schema history.
-- [ ] 2.3 Add and verify database start, status and reset commands from a clean local state.
+- [x] 2.3 Add and verify database start, status and reset commands from a clean local state.
 
 ## 3. FastAPI and Simulator Services
 
@@ -36,7 +36,7 @@
 
 ## 7. End-to-End Verification and Documentation
 
-- [ ] 7.1 Run clean build, start, health, Auth/API smoke, database reset, repeated lifecycle and shutdown verification and resolve failures.
+- [x] 7.1 Run clean build, start, health, Auth/API smoke, database reset, repeated lifecycle and shutdown verification and resolve failures.
 - [x] 7.2 Document prerequisites, setup, lifecycle commands, service URLs, migration ownership and troubleshooting in the product-facing README.
-- [ ] 7.3 Measure and record clean startup time against the under-15-minute target, including any supported-environment caveats.
+- [x] 7.3 Measure and record clean startup time against the under-15-minute target, including any supported-environment caveats.
 - [x] 7.4 Run all static checks and tests, inspect tracked files for secrets, and record WI-001 evidence in small local Conventional Commits without pushing or merging.

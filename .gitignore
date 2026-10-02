@@ -20,11 +20,12 @@ __pycache__/
 
 # Local infrastructure state
 .supabase/
+.docker-public/
 supabase/.temp/
+supabase/.branches/
 n8n_data/
 
 # Editors and operating systems
 .DS_Store
 .idea/
 .vscode/
-

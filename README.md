@@ -71,7 +71,7 @@ All schema changes belong in `supabase/migrations`. Do not add Alembic. Next.js 
 
 ## Troubleshooting
 
-- **Docker is unavailable in WSL:** enable the distribution under Docker Desktop → Settings → Resources → WSL Integration, reopen the shell and run `docker version`.
+- **Docker is unavailable in WSL:** enable the distribution under Docker Desktop → Settings → Resources → WSL Integration, reopen the shell and run `docker version`. When Docker Desktop configures its Windows credential helper inside WSL, the wrapper uses an ignored, public-image-only Docker config so startup does not depend on that helper.
 - **A required variable is missing:** copy `.env.example` again and replace its local placeholders. The wrapper reports variable names but never values.
 - **Supabase is partially running:** run `make down`, then `make up`. The wrapper is designed for repeated lifecycle use.
 - **A port is already occupied:** stop the conflicting local service. The reserved ports are 3000, 5678, 8000, 8081 and 54320–54329.

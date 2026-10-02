@@ -55,7 +55,7 @@ services:
     restart: unless-stopped
 
   n8n:
-    image: docker.n8n.io/n8nio/n8n:2.41.3
+    image: n8nio/n8n:2.41.3
     environment:
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?N8N_ENCRYPTION_KEY is required}
       N8N_DIAGNOSTICS_ENABLED: "false"
