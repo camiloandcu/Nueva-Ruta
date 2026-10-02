@@ -1,0 +1,6 @@
+packages:
+  - apps/web
+
+allowBuilds:
+  supabase: true
+  unrs-resolver: true
