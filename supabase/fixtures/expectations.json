@@ -1,0 +1,40 @@
+{
+  "reference_instant": "2026-09-15T17:00:00Z",
+  "counts": {
+    "creators": 5,
+    "content_sources": 10,
+    "leads": 48,
+    "messages": 48,
+    "consent_evidence": 48,
+    "partner_import_jobs": 1,
+    "raw_partner_rows": 30
+  },
+  "lead_cases": {
+    "safe_complete": {"minimum": 8, "ids": ["LEAD-001", "LEAD-002", "LEAD-003", "LEAD-004", "LEAD-005", "LEAD-006", "LEAD-007", "LEAD-008"]},
+    "incomplete": {"minimum": 8, "ids": ["LEAD-009", "LEAD-010", "LEAD-011", "LEAD-012", "LEAD-013", "LEAD-014", "LEAD-015", "LEAD-016"]},
+    "ambiguous": {"minimum": 4, "ids": ["LEAD-017", "LEAD-018", "LEAD-019", "LEAD-020"]},
+    "risky_claim": {"minimum": 5, "ids": ["LEAD-021", "LEAD-022", "LEAD-023", "LEAD-024", "LEAD-025"]},
+    "unsupported_debt": {"minimum": 5, "ids": ["LEAD-026", "LEAD-027", "LEAD-028", "LEAD-029", "LEAD-030"]},
+    "sensitive_pattern": {"minimum": 3, "ids": ["LEAD-031", "LEAD-032", "LEAD-033"]},
+    "opt_out": {"minimum": 3, "ids": ["LEAD-034", "LEAD-035", "LEAD-036"]},
+    "spam": {"minimum": 3, "ids": ["LEAD-037", "LEAD-038", "LEAD-039"]},
+    "replay": {"minimum": 3, "ids": ["LEAD-040", "LEAD-041", "LEAD-042"]},
+    "organic": {"minimum": 4, "ids": ["LEAD-043", "LEAD-044", "LEAD-045", "LEAD-046"]},
+    "stale_after_hours": {"minimum": 2, "ids": ["LEAD-047", "LEAD-048"]}
+  },
+  "partner_defects": {
+    "exact_duplicate": [1, 2],
+    "conflicting_id": [3, 4],
+    "phone_format": [5, 6, 7],
+    "missing_country_code": [8],
+    "phone_mismatch": [9],
+    "unmatched_phone": [10],
+    "missing_creator": [11],
+    "contradictory_creator": [12],
+    "unknown_creator": [13],
+    "date_format": [14, 15, 16, 17, 18],
+    "date_quality": [19, 20, 21],
+    "repeated_enrollment": [22, 23, 24, 25],
+    "ambiguous_link": [26, 27, 28, 29, 30]
+  }
+}

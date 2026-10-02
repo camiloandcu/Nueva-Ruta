@@ -38,13 +38,24 @@ supabase_cli() {
 }
 
 write_runtime_environment() {
-  local status_output anon_key
+  local status_output anon_key service_role_key
   status_output="$(supabase_cli status -o env)"
   anon_key="$(printf '%s\n' "$status_output" | sed -n 's/^ANON_KEY="\{0,1\}\([^"[:space:]]*\)"\{0,1\}$/\1/p')"
+  service_role_key="$(printf '%s\n' "$status_output" | sed -n 's/^SERVICE_ROLE_KEY="\{0,1\}\([^"[:space:]]*\)"\{0,1\}$/\1/p')"
   [[ -n "$anon_key" ]] || die "Supabase CLI did not report ANON_KEY"
+  [[ -n "$service_role_key" ]] || die "Supabase CLI did not report SERVICE_ROLE_KEY"
 
   umask 077
-  printf 'SUPABASE_ANON_KEY=%s\n' "$anon_key" > "$RUNTIME_ENV"
+  printf 'SUPABASE_ANON_KEY=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\n' "$anon_key" "$service_role_key" > "$RUNTIME_ENV"
+}
+
+bootstrap_demo_identities() {
+  local service_role_key
+  service_role_key="$(sed -n 's/^SUPABASE_SERVICE_ROLE_KEY=//p' "$RUNTIME_ENV" | tail -n 1)"
+  [[ -n "$service_role_key" ]] || die "runtime service role key is missing"
+  SUPABASE_BOOTSTRAP_URL="http://127.0.0.1:54321" \
+    SUPABASE_SERVICE_ROLE_KEY="$service_role_key" \
+    python3 "$PROJECT_ROOT/scripts/bootstrap_demo_identities.py"
 }
 
 compose() {
@@ -70,6 +81,7 @@ wait_for_url() {
 start_stack() {
   require_command docker
   require_command pnpm
+  require_command python3
   require_command curl
   require_environment
   prepare_docker_environment
@@ -78,6 +90,7 @@ start_stack() {
     die "Supabase local failed to start; rerun with pnpm exec supabase start for diagnostics"
   fi
   write_runtime_environment
+  bootstrap_demo_identities
   compose up --detach --build
 
   wait_for_url "web" "http://localhost:3000/api/health"
@@ -95,6 +108,7 @@ start_stack() {
 
 stop_stack() {
   require_command pnpm
+  require_command python3
   if [[ -f "$PROJECT_ROOT/.env" && -f "$RUNTIME_ENV" ]]; then
     require_command docker
     prepare_docker_environment
@@ -105,7 +119,10 @@ stop_stack() {
 
 reset_database() {
   require_command pnpm
+  require_environment
   supabase_cli db reset
+  write_runtime_environment
+  bootstrap_demo_identities
 }
 
 verify_stack() {
@@ -129,10 +146,18 @@ verify_stack() {
   printf 'ready: authenticated SSR session smoke\n'
 }
 
+test_database() {
+  require_command pnpm
+  require_environment
+  [[ -f "$RUNTIME_ENV" ]] || die "runtime environment is missing; run seed first"
+  supabase_cli test db
+}
+
 case "${1:-}" in
   start) start_stack ;;
   stop) stop_stack ;;
-  reset) reset_database ;;
+  reset|seed) reset_database ;;
+  test-db) test_database ;;
   verify) verify_stack ;;
-  *) die "usage: $0 {start|stop|reset|verify}" ;;
+  *) die "usage: $0 {start|stop|seed|reset|test-db|verify}" ;;
 esac
