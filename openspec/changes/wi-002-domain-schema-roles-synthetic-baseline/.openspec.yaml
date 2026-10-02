@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-02
+goal: Create the stable, authorization-aware source of truth and repeatable demo
+  state required by later Nueva Ruta workflows.
