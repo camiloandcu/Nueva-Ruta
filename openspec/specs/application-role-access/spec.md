@@ -39,4 +39,3 @@ The analyst role SHALL receive only the attribution and aggregate-ready fields n
 #### Scenario: Analyst requests restricted message detail
 - **WHEN** an authenticated analyst calls a restricted message-detail endpoint
 - **THEN** FastAPI denies access without including the message content in the response or logs
-

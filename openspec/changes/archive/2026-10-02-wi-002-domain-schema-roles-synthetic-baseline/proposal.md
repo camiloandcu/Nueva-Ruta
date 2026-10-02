@@ -31,4 +31,3 @@ None.
 - Data model: introduces the first business-domain tables under the existing Supabase-only migration authority.
 - Authentication: extends the WI-001 Auth session proof with seeded local identities and application roles; no external identity provider is added.
 - Dependencies: may add a focused Python JWT/PostgreSQL client only if required by the approved implementation; no hosted service or paid account is introduced.
-

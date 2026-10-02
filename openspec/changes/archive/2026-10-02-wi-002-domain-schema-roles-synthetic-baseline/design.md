@@ -83,4 +83,3 @@ Rollback before later work items is a database reset after reverting the WI-002 
 ## Open Questions
 
 None block proposal review. Exact library choices for JWT verification and PostgreSQL access will be selected during implementation from actively supported versions compatible with the pinned Python runtime, without changing the approved boundaries.
-

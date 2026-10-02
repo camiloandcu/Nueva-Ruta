@@ -28,4 +28,3 @@ Every accepted reset SHALL create a durable audit event identifying the actor, t
 #### Scenario: Repeated reset remains deterministic
 - **WHEN** a supervisor performs two independently confirmed resets
 - **THEN** each reset restores the same baseline and produces its own distinct audit event
-

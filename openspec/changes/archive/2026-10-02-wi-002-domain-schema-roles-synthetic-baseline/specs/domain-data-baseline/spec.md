@@ -51,4 +51,3 @@ All bundled people, messages, phones, enrollments, creators and content SHALL be
 #### Scenario: Reviewer sees fixture provenance
 - **WHEN** a reviewer reads the fixture documentation or supported data surface
 - **THEN** the data is identified as synthetic, non-contactable and unsuitable for production use
-

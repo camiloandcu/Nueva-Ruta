@@ -98,4 +98,3 @@ The README SHALL document prerequisites, initial installation, lifecycle command
 #### Scenario: Startup duration is recorded
 - **WHEN** final WI-001 verification is performed from a clean local state
 - **THEN** the implementation report records the measured startup duration and any environmental caveat affecting the 15-minute target
-
