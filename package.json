@@ -1,0 +1,26 @@
+{
+  "name": "nueva-ruta",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": "24.18.0",
+    "pnpm": "11.17.0"
+  },
+  "scripts": {
+    "dev": "./scripts/local.sh start",
+    "down": "./scripts/local.sh stop",
+    "reset": "./scripts/local.sh reset",
+    "verify:runtime": "./scripts/local.sh verify",
+    "format": "pnpm --filter @nueva-ruta/web format",
+    "lint": "pnpm --filter @nueva-ruta/web lint && uv run ruff check .",
+    "typecheck": "pnpm --filter @nueva-ruta/web typecheck && uv run mypy apps/api/src apps/simulator/src",
+    "test": "pnpm --filter @nueva-ruta/web test && uv run pytest",
+    "verify:repo": "uv run python scripts/verify_repository.py",
+    "quality": "pnpm format && pnpm lint && pnpm typecheck && pnpm test && pnpm verify:repo",
+    "supabase": "supabase"
+  },
+  "devDependencies": {
+    "supabase": "2.119.0"
+  }
+}
