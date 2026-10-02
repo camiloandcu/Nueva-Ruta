@@ -53,7 +53,7 @@ def request(method: str, path: str, body: dict[str, Any] | None = None, *, prefe
 def main() -> None:
     if not BASE_URL or not SERVICE_KEY:
         fail("SUPABASE_BOOTSTRAP_URL and SUPABASE_SERVICE_ROLE_KEY are required")
-    env = dotenv()
+    env = {**dotenv(), **os.environ}
     accounts = [
         ("operator", "DEMO_OPERATOR_EMAIL", "DEMO_OPERATOR_PASSWORD", "Demo Operator"),
         ("supervisor", "DEMO_SUPERVISOR_EMAIL", "DEMO_SUPERVISOR_PASSWORD", "Demo Supervisor"),

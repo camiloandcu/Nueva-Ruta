@@ -1,4 +1,4 @@
-.PHONY: up down seed reset verify quality
+.PHONY: up down seed reset test-db verify quality
 
 up:
 	./scripts/local.sh start
@@ -11,6 +11,9 @@ reset:
 
 seed:
 	./scripts/local.sh seed
+
+test-db:
+	./scripts/local.sh test-db
 
 verify:
 	./scripts/local.sh verify

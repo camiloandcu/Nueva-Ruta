@@ -1,5 +1,8 @@
 begin;
 
+create extension if not exists pgtap with schema extensions;
+select plan(1);
+
 do $$
 declare
   expected jsonb := '{"creators":5,"content_sources":10,"leads":48,"messages":48,"consent":48,"partner_rows":30}'::jsonb;
@@ -57,5 +60,65 @@ begin
   end;
 end;
 $$;
+
+do $$
+declare
+  supervisor_id uuid := (select id from public.app_users where role = 'supervisor' and active limit 1);
+  operator_id uuid := (select id from public.app_users where role = 'operator' and active limit 1);
+  before_hash text;
+  first_hash text;
+  second_hash text;
+  audit_before bigint;
+begin
+  if supervisor_id is null or operator_id is null then
+    raise exception 'demo identities must be bootstrapped before database tests';
+  end if;
+  select md5(string_agg(business_id || source_event_id || received_at::text, ',' order by business_id))
+    into before_hash from public.leads;
+  begin
+    perform public.reset_synthetic_baseline(
+      operator_id, 'RESET SYNTHETIC BASELINE', 'authorization test', 'sql-denied-role'
+    );
+    raise exception 'operator reset was accepted';
+  exception
+    when insufficient_privilege then null;
+  end;
+  begin
+    perform public.reset_synthetic_baseline(
+      supervisor_id, 'wrong confirmation', 'confirmation test', 'sql-denied-confirmation'
+    );
+    raise exception 'incorrect reset confirmation was accepted';
+  exception
+    when invalid_parameter_value then null;
+  end;
+  if before_hash <> (
+    select md5(string_agg(business_id || source_event_id || received_at::text, ',' order by business_id))
+    from public.leads
+  ) then
+    raise exception 'denied reset changed the baseline';
+  end if;
+
+  select count(*) into audit_before from public.audit_events where action = 'synthetic_baseline.reset';
+  perform public.reset_synthetic_baseline(
+    supervisor_id, 'RESET SYNTHETIC BASELINE', 'repeatability test one', 'sql-reset-one'
+  );
+  select md5(string_agg(business_id || source_event_id || received_at::text, ',' order by business_id))
+    into first_hash from public.leads;
+  perform public.reset_synthetic_baseline(
+    supervisor_id, 'RESET SYNTHETIC BASELINE', 'repeatability test two', 'sql-reset-two'
+  );
+  select md5(string_agg(business_id || source_event_id || received_at::text, ',' order by business_id))
+    into second_hash from public.leads;
+  if before_hash <> first_hash or first_hash <> second_hash then
+    raise exception 'consecutive reset baseline hashes differ';
+  end if;
+  if (select count(*) from public.audit_events where action = 'synthetic_baseline.reset') <> audit_before + 2 then
+    raise exception 'two successful resets did not preserve two audit events';
+  end if;
+end;
+$$;
+
+select pass('domain baseline constraints, authorization and repeatability hold');
+select * from finish();
 
 rollback;

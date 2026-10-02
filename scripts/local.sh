@@ -146,10 +146,18 @@ verify_stack() {
   printf 'ready: authenticated SSR session smoke\n'
 }
 
+test_database() {
+  require_command pnpm
+  require_environment
+  [[ -f "$RUNTIME_ENV" ]] || die "runtime environment is missing; run seed first"
+  supabase_cli test db
+}
+
 case "${1:-}" in
   start) start_stack ;;
   stop) stop_stack ;;
   reset|seed) reset_database ;;
+  test-db) test_database ;;
   verify) verify_stack ;;
-  *) die "usage: $0 {start|stop|seed|reset|verify}" ;;
+  *) die "usage: $0 {start|stop|seed|reset|test-db|verify}" ;;
 esac

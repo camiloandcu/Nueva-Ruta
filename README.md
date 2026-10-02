@@ -55,6 +55,7 @@ The wrapper starts Supabase first, reads its local anonymous key into the ignore
 | `make verify` | Check every service plus Next.js → FastAPI and Auth SSR smoke paths |
 | `make reset` | Rebuild the local database from Supabase SQL migrations |
 | `make seed` | Explicit alias for a clean migration/seed rebuild and local identity bootstrap |
+| `make test-db` | Run live database constraints, reset repeatability and audit tests after seeding |
 | `make quality` | Run format, lint, type, tests, architecture and secret-pattern checks |
 | `make down` | Stop Compose and Supabase local services |
 
