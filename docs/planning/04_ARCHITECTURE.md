@@ -14,40 +14,29 @@ Additional drivers are deterministic compliance, human approval, idempotency, di
 
 ## System context
 
-```text
-Creators / organic traffic
-           |
-           v
-  Chat/CTWA simulator
-           |
-           v
-    Nueva Ruta Ops <------ Operator / Supervisor
-           |
-           +-------------> Influgain analyst
-           |
-           v
-Consejería Clara simulator
-           |
-           v
- Dirty enrollment CSV
+```mermaid
+flowchart TB
+    creators[Creators / organic traffic] --> chat[Chat/CTWA simulator]
+    chat --> ops[Nueva Ruta Ops]
+    users[Operator / Supervisor] --> ops
+    ops --> analyst[Influgain analyst]
+    ops --> partner[Consejería Clara simulator]
+    partner --> csv[Dirty enrollment CSV]
 ```
 
 ## Container view
 
-```text
-Browser
-  |
-  v
-Next.js App Router -------- Supabase Auth (SSR)
-  |
-  v
-FastAPI: only business API ---------------- Optional hosted AI
-  |                    ^                              |
-  v                    |                              |
-Supabase local         +------------ n8n ------------+
-PostgreSQL/Auth                         |
-  ^                                     v
-  +---------------------- partner/chat simulators
+```mermaid
+flowchart TB
+    browser[Browser] --> web[Next.js App Router]
+    web --- auth[Supabase Auth SSR]
+    web --> api[FastAPI: only business API]
+    api --> supabase[Supabase local PostgreSQL/Auth]
+    api --- ai[Optional hosted AI]
+    n8n[n8n] --> api
+    ai --> n8n
+    n8n --> simulators[partner/chat simulators]
+    simulators --> supabase
 ```
 
 Next.js and n8n never write business-domain tables directly. They use authenticated FastAPI contracts so authorization, idempotency, audit and transaction boundaries remain centralized.
@@ -229,15 +218,15 @@ This is security appropriate to a controlled synthetic demo, not certification f
 
 ## AI adapter
 
-```text
-Domain input
-  → deterministic sensitive-data redaction
-  → provider-neutral request
-  → hosted provider or deterministic fallback
-  → schema validation
-  → confidence/completeness check
-  → deterministic compliance post-filter
-  → draft or escalation
+```mermaid
+flowchart LR
+    input[Domain input] --> redaction[deterministic sensitive-data redaction]
+    redaction --> request[provider-neutral request]
+    request --> execution[hosted provider or deterministic fallback]
+    execution --> schema[schema validation]
+    schema --> confidence[confidence/completeness check]
+    confidence --> compliance[deterministic compliance post-filter]
+    compliance --> outcome[draft or escalation]
 ```
 
 The candidate OpenAI model is configuration, not a domain dependency. The initial evaluation may compare `gpt-5.6-luna` with `gpt-6.1-sol` for difficult Spanish drafts, subject to actual account availability. No model is allowed to change rules or execute sends/transfers.

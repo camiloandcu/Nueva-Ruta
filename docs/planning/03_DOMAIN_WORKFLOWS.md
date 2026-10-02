@@ -32,51 +32,76 @@ Owns fictional sources, prioritization evidence, scripts and review versions. It
 
 ### Commercial lead stage
 
-```text
-new
-  → under_review
-  → prequalified
-      ├→ contact_attempted
-      ├→ info_sent
-      ├→ callback_scheduled
-      └→ transferred → enrolled
-
-any nonterminal stage → closed_not_interested
+```mermaid
+stateDiagram-v2
+    [*] --> new
+    new --> under_review
+    under_review --> prequalified
+    prequalified --> contact_attempted
+    prequalified --> info_sent
+    prequalified --> callback_scheduled
+    prequalified --> transferred
+    transferred --> enrolled
+    new --> closed_not_interested
+    under_review --> closed_not_interested
+    prequalified --> closed_not_interested
+    contact_attempted --> closed_not_interested
+    info_sent --> closed_not_interested
+    callback_scheduled --> closed_not_interested
+    transferred --> closed_not_interested
 ```
 
 `escalated` is not a commercial stage. A lead can remain `prequalified` while a compliance task is `in_review`.
 
 ### Draft state
 
-```text
-pending_review → approved → delivery_pending → sent
-       │             │              └→ failed
-       ├→ changes_requested
-       ├→ rejected
-       └→ compliance_blocked
+```mermaid
+stateDiagram-v2
+    [*] --> pending_review
+    pending_review --> approved
+    pending_review --> changes_requested
+    pending_review --> rejected
+    pending_review --> compliance_blocked
+    approved --> delivery_pending
+    delivery_pending --> sent
+    delivery_pending --> failed
 ```
 
 ### Escalation state
 
-```text
-pending → assigned → in_review → resolved
-                            └→ closed_with_reason
+```mermaid
+stateDiagram-v2
+    [*] --> pending
+    pending --> assigned
+    assigned --> in_review
+    in_review --> resolved
+    in_review --> closed_with_reason
 ```
 
 ### Delivery state
 
-```text
-pending → processing → delivered
-                    ├→ retry_scheduled
-                    └→ dead_letter
+```mermaid
+stateDiagram-v2
+    [*] --> pending
+    pending --> processing
+    processing --> delivered
+    processing --> retry_scheduled
+    processing --> dead_letter
 ```
 
 ### Reconciliation state
 
-```text
-unmatched → candidate_exact → matched
-        └→ candidate_ambiguous → review_required → matched/rejected
-        └→ conflict → review_required → matched/rejected
+```mermaid
+stateDiagram-v2
+    [*] --> unmatched
+    unmatched --> candidate_exact
+    candidate_exact --> matched
+    unmatched --> candidate_ambiguous
+    unmatched --> conflict
+    candidate_ambiguous --> review_required
+    conflict --> review_required
+    review_required --> matched
+    review_required --> rejected
 ```
 
 ## WF-01 — Inbound lead

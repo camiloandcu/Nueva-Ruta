@@ -115,15 +115,15 @@ AI may not:
 
 ## AI processing sequence
 
-```text
-inbound text
-  → deterministic triggers and opt-out
-  → sensitive-data redaction
-  → provider-neutral structured request
-  → schema validation
-  → confidence/completeness policy
-  → deterministic language post-filter
-  → draft, deterministic outcome or human escalation
+```mermaid
+flowchart LR
+    inbound[inbound text] --> triggers[deterministic triggers and opt-out]
+    triggers --> redaction[sensitive-data redaction]
+    redaction --> request[provider-neutral structured request]
+    request --> schema[schema validation]
+    schema --> confidence[confidence/completeness policy]
+    confidence --> filter[deterministic language post-filter]
+    filter --> outcome[draft, deterministic outcome or human escalation]
 ```
 
 The hosted provider is optional. The first candidate is OpenAI Responses API. Model configuration remains replaceable; availability and pricing are checked at implementation time. A deterministic fallback keeps ingestion and obvious rule decisions working with no key.
