@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-02
+goal: Provide a healthy Supabase local, Next.js, FastAPI, n8n and simulator
+  baseline that starts through one documented wrapper command.
