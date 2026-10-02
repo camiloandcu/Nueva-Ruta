@@ -6,6 +6,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
   "fastapi==0.135.1",
   "httpx==0.28.1",
+  "pyyaml==6.0.3",
   "uvicorn[standard]==0.41.0",
 ]
 
@@ -38,4 +39,3 @@ python_version = "3.12"
 strict = true
 packages = ["nueva_ruta_api", "nueva_ruta_simulator"]
 mypy_path = ["apps/api/src", "apps/simulator/src"]
-

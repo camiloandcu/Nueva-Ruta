@@ -1,0 +1,55 @@
+schema_version: 1
+policy_id: nueva-ruta-fictional-defaults
+classification:
+  triggers:
+    - id: explicit_debt_help
+      phrases: ["ayuda con deudas", "opciones para mis deudas"]
+      target_stage: needs_review
+debt_policy:
+  currency: USD
+  minimum: 5000
+  maximum: 100000
+  supported_types: [credit_card, medical, personal_loan]
+state_coverage:
+  included: [CA, FL, TX]
+operating_schedule:
+  timezone: America/New_York
+  weekdays: [monday, tuesday, wednesday, thursday, friday]
+  opens_at: "09:00"
+  closes_at: "18:00"
+escalation:
+  sla_minutes: 30
+retry_policy:
+  maximum_attempts: 3
+  delays_minutes: [5, 30, 120]
+stage_transitions:
+  received: [needs_review, ignored]
+  needs_review: [qualified, ignored]
+  qualified: []
+  ignored: []
+automatic_templates:
+  - purpose: receipt_privacy
+    version: 1
+    body: "Recibimos tu mensaje. Un consejero podría orientarte según tu situación. Protege tu información personal."
+  - purpose: after_hours
+    version: 1
+    body: "Recibimos tu mensaje fuera del horario. Un consejero responderá durante el próximo horario de atención."
+  - purpose: opt_out_confirmation
+    version: 1
+    body: "Confirmamos tu solicitud. No enviaremos más mensajes automáticos."
+feature_flags:
+  automatic_messages_enabled: false
+compliance:
+  required_partner_term: consejero
+  disallowed_partner_terms: [asesor, consultor, especialista]
+  conditional_phrases:
+    - podría
+    - en algunos casos
+    - dependiendo de la situación y de los acreedores
+  prohibited_phrases:
+    - garantizamos
+    - garantía
+    - deja de pagar
+    - no hables con tus acreedores
+    - tu deuda desaparecerá
+  allowed_automatic_purposes: [receipt_privacy, after_hours, opt_out_confirmation]
