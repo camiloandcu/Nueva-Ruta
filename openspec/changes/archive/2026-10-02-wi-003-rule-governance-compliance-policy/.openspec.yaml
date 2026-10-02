@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-02
+goal: Move fictional business and compliance policy out of source code into
+  validated, reviewable and immutable published rule versions.

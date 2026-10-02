@@ -47,3 +47,79 @@ code {
   border-radius: 0.35rem;
   background: #eee9dc;
 }
+
+.rules-shell {
+  width: min(1100px, calc(100% - 2rem));
+}
+
+.rule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.panel {
+  padding: 1.25rem;
+  border: 1px solid #d8d3c5;
+  border-radius: 0.8rem;
+  background: #fff;
+}
+
+.review-panel {
+  grid-column: 1 / -1;
+  overflow-x: auto;
+}
+
+.history {
+  display: grid;
+  gap: 0.75rem;
+  padding-left: 1.4rem;
+}
+
+.history li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #aaa394;
+  border-radius: 0.5rem;
+  font-family: ui-monospace, monospace;
+}
+
+button {
+  margin-top: 0.75rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: #17332d;
+  color: white;
+  font-weight: 700;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.issue {
+  color: #8b2f19;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.65rem;
+  border-bottom: 1px solid #ddd7c9;
+  text-align: left;
+  vertical-align: top;
+}
