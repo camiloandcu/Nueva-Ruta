@@ -4,14 +4,15 @@ Nueva Ruta is a fictional Spanish-language debt-management operations product fo
 
 ## Runtime architecture
 
-```text
-Browser -> Next.js -> FastAPI -> Supabase local PostgreSQL
-              |           |
-              |           +-> Supabase Auth health
-              +-> Supabase Auth session
-
-n8n ---------> FastAPI contracts (future work items)
-simulator ----> external boundary fixtures (future work items)
+```mermaid
+flowchart LR
+    browser[Browser] --> web[Next.js]
+    web --> api[FastAPI]
+    api --> db[Supabase local PostgreSQL]
+    web --> authSession[Supabase Auth session]
+    api --> authHealth[Supabase Auth health]
+    n8n[n8n] -. future work items .-> contracts[FastAPI contracts]
+    simulator[simulator] -. future work items .-> fixtures[external boundary fixtures]
 ```
 
 - **Next.js App Router** owns the Spanish operator shell and server-side session handling.
@@ -89,4 +90,8 @@ The product reset is `POST /v1/admin/synthetic-baseline/reset`. It requires an a
 
 ## Current scope
 
-This increment proves runtime health, constrained persistence, server-side application roles, deterministic fixtures and protected reset. Lead ingestion, DMP pre-qualification, CRM dispositions, retries, partner normalization/reconciliation, reporting and content generation remain reserved for separately reviewed OpenSpec changes.
+This increment proves runtime health, constrained persistence, server-side application roles,
+deterministic fixtures, protected reset, idempotent synthetic lead ingestion, redacted
+triage, optional observable assistance and human-reviewed drafts. DMP pre-qualification,
+CRM dispositions, retries, partner normalization/reconciliation, reporting and content
+generation remain reserved for separately reviewed OpenSpec changes.

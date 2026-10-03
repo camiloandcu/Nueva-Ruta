@@ -52,6 +52,66 @@ code {
   width: min(1100px, calc(100% - 2rem));
 }
 
+.operations-shell {
+  width: min(1180px, calc(100% - 2rem));
+}
+
+.operation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.evidence-card {
+  margin: 0.8rem 0;
+  padding: 1rem;
+  border-left: 4px solid #9a4e2d;
+  background: #f7f4ed;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #dce9e3;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.badge-failed,
+.badge-rejected,
+.badge-escalate_human {
+  background: #f7d8cc;
+  color: #762912;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+}
+
+.filter-row label,
+.timeline li {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.timeline {
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline li {
+  grid-template-columns: auto 1fr auto;
+  padding: 0.85rem;
+  border-bottom: 1px solid #ddd7c9;
+}
+
 .rule-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));

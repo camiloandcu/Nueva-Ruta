@@ -40,3 +40,25 @@ test("rule review requires diff and exact hash before publication", () => {
   assert.match(review, /\/rollback-drafts/);
   assert.match(review, /solo un supervisor/);
 });
+
+test("WI-004 operations use authenticated FastAPI proxy only", () => {
+  const proxy = readFileSync(new URL("../app/api/operations/[...path]/route.ts", import.meta.url), "utf8");
+  assert.match(proxy, /supabase\.auth\.getSession/);
+  assert.match(proxy, /apiBaseUrl/);
+  assert.doesNotMatch(proxy, /\.from\(|\.rpc\(/);
+});
+
+test("human review exposes redacted leads and keeps approval undelivered", () => {
+  const review = readFileSync(new URL("../app/operations/review/review-queue.tsx", import.meta.url), "utf8");
+  assert.match(review, /redacted-leads/);
+  assert.match(review, /Aprobar sin entregar/);
+  assert.doesNotMatch(review, /original_body|restricted_event_evidence/);
+});
+
+test("AI operations exposes exact safe execution dimensions", () => {
+  const timeline = readFileSync(new URL("../app/operations/ai/timeline.tsx", import.meta.url), "utf8");
+  assert.match(timeline, /correlation_id/);
+  assert.match(timeline, /failure_layer/);
+  assert.match(timeline, /normalized_reason/);
+  assert.doesNotMatch(timeline, /message|prompt|reasoning/);
+});
