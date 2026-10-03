@@ -1,6 +1,7 @@
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Literal
 from uuid import NAMESPACE_URL, uuid5
 
 from nueva_ruta_api.ingestion_models import ApprovedFields, InboundEvent
@@ -27,7 +28,9 @@ STATE = re.compile(r"\b(CA|FL|TX|NY|NJ|AZ)\b", re.I)
 
 
 def stable_id(kind: str, event: InboundEvent, suffix: str = "") -> str:
-    return str(uuid5(NAMESPACE_URL, f"nueva-ruta:{kind}:{event.channel}:{event.source_event_id}:{suffix}"))
+    return str(
+        uuid5(NAMESPACE_URL, f"nueva-ruta:{kind}:{event.channel}:{event.source_event_id}:{suffix}")
+    )
 
 
 def extract_fields(text: str) -> ApprovedFields:
@@ -35,7 +38,7 @@ def extract_fields(text: str) -> ApprovedFields:
     amount_match = AMOUNT.search(text)
     amount = int(amount_match.group(1).replace(",", "").replace(".", "")) if amount_match else None
     state_match = STATE.search(text)
-    debt_type = None
+    debt_type: Literal["credit_card", "medical", "personal_loan"] | None = None
     if "tarjeta" in lowered or "credit card" in lowered:
         debt_type = "credit_card"
     elif "médic" in lowered or "medic" in lowered:
@@ -51,25 +54,73 @@ def extract_fields(text: str) -> ApprovedFields:
     )
 
 
-def classify(event: InboundEvent, redaction: RedactionResult, now: datetime | None = None) -> TriageOutcome:
+def classify(
+    event: InboundEvent, redaction: RedactionResult, now: datetime | None = None
+) -> TriageOutcome:
     del now
     text = redaction.text
     fields = extract_fields(text)
     if redaction.types:
-        return TriageOutcome("escalate_human", "sensitive_data", "Sensitive span detected.", fields, None, "high", None)
+        return TriageOutcome(
+            "escalate_human",
+            "sensitive_data",
+            "Sensitive span detected.",
+            fields,
+            None,
+            "high",
+            None,
+        )
     if OPT_OUT.search(text) or event.consent.status == "withdrawn":
-        return TriageOutcome("ignore", "explicit_opt_out", "Consent withdrawn.", fields, None, None, "opt_out_confirmation")
+        return TriageOutcome(
+            "ignore",
+            "explicit_opt_out",
+            "Consent withdrawn.",
+            fields,
+            None,
+            None,
+            "opt_out_confirmation",
+        )
     if SPAM.search(text):
-        return TriageOutcome("ignore", "obvious_spam", "Known spam pattern.", fields, None, None, None)
+        return TriageOutcome(
+            "ignore", "obvious_spam", "Known spam pattern.", fields, None, None, None
+        )
     if RISK.search(text):
-        return TriageOutcome("escalate_human", "legal_or_risk", "Risk language requires review.", fields, None, "urgent", None)
+        return TriageOutcome(
+            "escalate_human",
+            "legal_or_risk",
+            "Risk language requires review.",
+            fields,
+            None,
+            "urgent",
+            None,
+        )
     if HANDOFF.search(text):
-        return TriageOutcome("escalate_human", "requested_handoff", "Person requested.", fields, None, "normal", None)
+        return TriageOutcome(
+            "escalate_human", "requested_handoff", "Person requested.", fields, None, "normal", None
+        )
     if fields.state and fields.state not in {"CA", "FL", "TX"}:
-        return TriageOutcome("escalate_human", "unsupported_state", "State is outside active coverage.", fields, None, "normal", None)
+        return TriageOutcome(
+            "escalate_human",
+            "unsupported_state",
+            "State is outside active coverage.",
+            fields,
+            None,
+            "normal",
+            None,
+        )
     if fields.approximate_debt and not 5_000 <= fields.approximate_debt <= 100_000:
-        return TriageOutcome("escalate_human", "unsupported_debt", "Debt amount is outside policy.", fields, None, "normal", None)
-    missing = [name for name in ("approximate_debt", "debt_type", "state") if getattr(fields, name) is None]
+        return TriageOutcome(
+            "escalate_human",
+            "unsupported_debt",
+            "Debt amount is outside policy.",
+            fields,
+            None,
+            "normal",
+            None,
+        )
+    missing = [
+        name for name in ("approximate_debt", "debt_type", "state") if getattr(fields, name) is None
+    ]
     draft = (
         "Gracias por escribir. Para orientarte, ¿podrías compartir un monto aproximado, "
         "el tipo general de deuda y tu estado? No envíes números de cuenta ni credenciales."
@@ -77,5 +128,12 @@ def classify(event: InboundEvent, redaction: RedactionResult, now: datetime | No
         else "Gracias por la información. Un consejero podría orientarte según tu situación."
     )
     purpose = "after_hours" if not event.consent.conversation_window_open else "receipt_privacy"
-    return TriageOutcome("respond", "safe_inquiry", "Request is eligible for human-draft review.", fields, draft, None, purpose)
-
+    return TriageOutcome(
+        "respond",
+        "safe_inquiry",
+        "Request is eligible for human-draft review.",
+        fields,
+        draft,
+        None,
+        purpose,
+    )

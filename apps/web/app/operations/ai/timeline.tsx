@@ -21,7 +21,9 @@ export default function AiTimeline() {
     const params = new URLSearchParams();
     if (correlation) params.set("correlation_id", correlation);
     if (status) params.set("status", status);
-    const response = await fetch(`/api/operations/operations/ai?${params}`, { cache: "no-store" });
+    const response = await fetch(`/api/operations/operations/ai?${params}`, {
+      cache: "no-store",
+    });
     if (response.ok) setItems(await response.json());
   }, [correlation, status]);
   useEffect(() => {
@@ -35,12 +37,38 @@ export default function AiTimeline() {
   return (
     <section className="panel">
       <form className="filter-row" onSubmit={submit}>
-        <label>Correlación <input value={correlation} onChange={(e) => setCorrelation(e.target.value)} /></label>
-        <label>Estado <select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todos</option><option>skipped_configuration</option><option>succeeded</option><option>failed</option><option>rejected</option></select></label>
+        <label>
+          Correlación{" "}
+          <input
+            value={correlation}
+            onChange={(e) => setCorrelation(e.target.value)}
+          />
+        </label>
+        <label>
+          Estado{" "}
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">Todos</option>
+            <option>skipped_configuration</option>
+            <option>succeeded</option>
+            <option>failed</option>
+            <option>rejected</option>
+          </select>
+        </label>
         <button>Filtrar</button>
       </form>
       <ol className="timeline">
-        {items.map((item) => <li key={item.id}><span className={`badge badge-${item.status}`}>{item.status}</span><strong>{item.failure_layer} · {item.normalized_reason}</strong><code>{item.correlation_id}</code><small>{item.provider} {item.model}</small></li>)}
+        {items.map((item) => (
+          <li key={item.id}>
+            <span className={`badge badge-${item.status}`}>{item.status}</span>
+            <strong>
+              {item.failure_layer} · {item.normalized_reason}
+            </strong>
+            <code>{item.correlation_id}</code>
+            <small>
+              {item.provider} {item.model}
+            </small>
+          </li>
+        ))}
       </ol>
     </section>
   );

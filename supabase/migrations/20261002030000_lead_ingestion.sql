@@ -142,13 +142,13 @@ join public.redacted_event_evidence re on re.source_event_id = se.id
 join public.processing_decisions pd on pd.source_event_id = se.id;
 
 create or replace function public.ingest_source_event(p_payload jsonb) returns jsonb
-language plpgsql security definer set search_path = public, private, pg_temp as $$
+language plpgsql security definer set search_path = public, private, extensions, pg_temp as $$
 declare
   event_data jsonb := p_payload->'event'; result_data jsonb := p_payload->'result';
   existing jsonb; event_uuid uuid := (result_data->>'lead_id')::uuid;
   active_rule uuid; draft_body text := p_payload->>'draft_body'; escalation_data jsonb := p_payload->'escalation';
 begin
-  perform pg_advisory_xact_lock(hashtextextended(event_data->>'channel'||':'||event_data->>'source_event_id', 404));
+  perform pg_advisory_xact_lock(hashtextextended((event_data->>'channel')||':'||(event_data->>'source_event_id'), 404));
   select result into existing from public.source_events
     where channel = (event_data->>'channel')::public.lead_channel and source_event_id = event_data->>'source_event_id';
   if existing is not null then return jsonb_set(existing, '{replayed}', 'true'::jsonb); end if;

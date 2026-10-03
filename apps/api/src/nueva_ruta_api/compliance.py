@@ -24,4 +24,3 @@ def review_content(content: str) -> ContentReview:
     codes = tuple(code for code, pattern in PROHIBITED if pattern.search(content))
     checksum = hashlib.sha256(content.encode()).hexdigest()
     return ContentReview(not codes, codes, checksum)
-

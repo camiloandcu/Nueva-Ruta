@@ -34,15 +34,25 @@ class OpenAIAdapter:
 
     async def assist(self, redacted_text: str) -> str:
         schema = AssistanceOutput.model_json_schema()
+        request_body: dict[str, Any] = {
+            "model": self.settings.openai_model,
+            "input": redacted_text,
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "assistance",
+                    "schema": schema,
+                    "strict": True,
+                }
+            },
+        }
+        if self.settings.openai_model == "gpt-6-luna":
+            request_body["reasoning"] = {"effort": "none"}
         async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
             response = await client.post(
                 "https://api.openai.com/v1/responses",
                 headers={"Authorization": f"Bearer {self.settings.openai_api_key}"},
-                json={
-                    "model": self.settings.openai_model,
-                    "input": redacted_text,
-                    "text": {"format": {"type": "json_schema", "name": "assistance", "schema": schema, "strict": True}},
-                },
+                json=request_body,
             )
         response.raise_for_status()
         payload = response.json()
@@ -63,27 +73,44 @@ def validate_output(raw: str, minimum_confidence: float = 0.75) -> AssistanceOut
     return output
 
 
-async def run_assistance(settings: Settings, redacted_text: str, adapter: AssistanceAdapter | None = None) -> Attempt:
+async def run_assistance(
+    settings: Settings, redacted_text: str, adapter: AssistanceAdapter | None = None
+) -> Attempt:
     if settings.ai_provider != "openai":
-        return Attempt("skipped_configuration", "configuration", "provider_disabled", "deterministic", "")
+        return Attempt(
+            "skipped_configuration", "configuration", "provider_disabled", "deterministic", ""
+        )
     if not settings.openai_api_key:
-        return Attempt("skipped_configuration", "configuration", "missing_api_key", "openai", settings.openai_model)
+        return Attempt(
+            "skipped_configuration",
+            "configuration",
+            "missing_api_key",
+            "openai",
+            settings.openai_model,
+        )
     if not settings.openai_model:
         return Attempt("skipped_configuration", "configuration", "missing_model", "openai", "")
     selected = adapter or OpenAIAdapter(settings)
     try:
         raw = await selected.assist(redacted_text)
         output = validate_output(raw)
-        return Attempt("succeeded", "none", "accepted", "openai", settings.openai_model, output=output)
+        return Attempt(
+            "succeeded", "none", "accepted", "openai", settings.openai_model, output=output
+        )
     except httpx.TimeoutException:
         return Attempt("failed", "transport", "timeout", "openai", settings.openai_model)
     except httpx.ConnectError:
         return Attempt("failed", "transport", "connection_error", "openai", settings.openai_model)
     except httpx.HTTPStatusError as exc:
         reasons = {401: "authentication", 403: "authentication", 429: "rate_limit"}
-        return Attempt("failed", "provider", reasons.get(exc.response.status_code, "provider_5xx"), "openai", settings.openai_model)
+        return Attempt(
+            "failed",
+            "provider",
+            reasons.get(exc.response.status_code, "provider_5xx"),
+            "openai",
+            settings.openai_model,
+        )
     except PermissionError as exc:
         return Attempt("rejected", "compliance", str(exc), "openai", settings.openai_model)
     except ValueError as exc:
         return Attempt("rejected", "output_validation", str(exc), "openai", settings.openai_model)
-

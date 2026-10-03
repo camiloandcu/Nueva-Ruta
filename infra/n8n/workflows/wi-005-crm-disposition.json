@@ -1,0 +1,163 @@
+{
+  "name": "WI-005 CRM Disposition",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wi-005-crm-disposition",
+        "responseMode": "responseNode"
+      },
+      "id": "disposition-webhook",
+      "name": "Operator disposition",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.API_INTERNAL_URL}}/v1/crm/leads/{{$json.crm_lead_id}}/dispositions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$json.auth_token}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({disposition: $json.disposition, idempotency_key: $json.idempotency_key, reason: $json.reason, correlation_id: $json.correlation_id, callback_at: $json.callback_at, timezone: $json.timezone, draft_id: $json.draft_id, crm_follow_up_draft_id: $json.crm_follow_up_draft_id, external_action_reference: $json.external_action_reference, explicit_opt_out: $json.explicit_opt_out || false})}}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "fastapi-disposition",
+      "name": "FastAPI disposition boundary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 0]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.commercial_stage}}",
+                    "rightValue": "contact_attempted",
+                    "operator": {"type": "string", "operation": "equals"}
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "no_answer_recorded"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.commercial_stage}}",
+                    "rightValue": "info_sent",
+                    "operator": {"type": "string", "operation": "equals"}
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "info_sent_recorded"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.commercial_stage}}",
+                    "rightValue": "transferred",
+                    "operator": {"type": "string", "operation": "equals"}
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "transfer_accepted"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.commercial_stage}}",
+                    "rightValue": "callback_scheduled",
+                    "operator": {"type": "string", "operation": "equals"}
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "callback_scheduled"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.commercial_stage}}",
+                    "rightValue": "closed_not_interested",
+                    "operator": {"type": "string", "operation": "equals"}
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "not_interested"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "validation_or_recovery_required"
+        }
+      },
+      "id": "disposition-result",
+      "name": "Disposition result",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [560, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}"
+      },
+      "id": "disposition-response",
+      "name": "Return correlated result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [860, 0]
+    }
+  ],
+  "connections": {
+    "Operator disposition": {
+      "main": [[{"node": "FastAPI disposition boundary", "type": "main", "index": 0}]]
+    },
+    "FastAPI disposition boundary": {
+      "main": [[{"node": "Disposition result", "type": "main", "index": 0}]]
+    },
+    "Disposition result": {
+      "main": [
+        [{"node": "Return correlated result", "type": "main", "index": 0}],
+        [{"node": "Return correlated result", "type": "main", "index": 0}],
+        [{"node": "Return correlated result", "type": "main", "index": 0}],
+        [{"node": "Return correlated result", "type": "main", "index": 0}],
+        [{"node": "Return correlated result", "type": "main", "index": 0}],
+        [{"node": "Return correlated result", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {"executionOrder": "v1"},
+  "active": false,
+  "versionId": "00000000-0000-4000-8000-000000000006",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": [{"name": "synthetic-only"}, {"name": "operator-command"}]
+}

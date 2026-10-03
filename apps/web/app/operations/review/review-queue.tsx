@@ -10,7 +10,12 @@ type Lead = {
   decision: string;
   reason_code: string;
 };
-type Draft = { id: string; content: string; content_checksum: string; created_at: string };
+type Draft = {
+  id: string;
+  content: string;
+  content_checksum: string;
+  created_at: string;
+};
 
 export default function ReviewQueue() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -18,7 +23,9 @@ export default function ReviewQueue() {
   const [message, setMessage] = useState("");
   const load = useCallback(async () => {
     const [leadResponse, draftResponse] = await Promise.all([
-      fetch("/api/operations/operational/redacted-leads", { cache: "no-store" }),
+      fetch("/api/operations/operational/redacted-leads", {
+        cache: "no-store",
+      }),
       fetch("/api/operations/drafts/pending", { cache: "no-store" }),
     ]);
     if (leadResponse.ok) setLeads(await leadResponse.json());
@@ -33,10 +40,17 @@ export default function ReviewQueue() {
     const response = await fetch(`/api/operations/drafts/${draft.id}/approve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: draft.content, correlation_id: `web-${draft.id}` }),
+      body: JSON.stringify({
+        content: draft.content,
+        correlation_id: `web-${draft.id}`,
+      }),
     });
     const result = await response.json();
-    setMessage(response.ok ? "Aprobado y auditado; no entregado." : `Bloqueado: ${result.detail}`);
+    setMessage(
+      response.ok
+        ? "Aprobado y auditado; no entregado."
+        : `Bloqueado: ${result.detail}`,
+    );
     await load();
   }
 
@@ -48,7 +62,9 @@ export default function ReviewQueue() {
           <article key={lead.source_event_id} className="evidence-card">
             <strong>{lead.external_event_id}</strong>
             <p>{lead.redacted_body}</p>
-            <span className={`badge badge-${lead.decision}`}>{lead.reason_code}</span>
+            <span className={`badge badge-${lead.decision}`}>
+              {lead.reason_code}
+            </span>
           </article>
         ))}
       </section>
@@ -56,8 +72,14 @@ export default function ReviewQueue() {
         <h2>Borradores pendientes</h2>
         {drafts.map((draft) => (
           <article key={draft.id} className="evidence-card">
-            <textarea aria-label="Contenido para aprobación" defaultValue={draft.content} readOnly />
-            <button onClick={() => void approve(draft)}>Aprobar sin entregar</button>
+            <textarea
+              aria-label="Contenido para aprobación"
+              defaultValue={draft.content}
+              readOnly
+            />
+            <button onClick={() => void approve(draft)}>
+              Aprobar sin entregar
+            </button>
           </article>
         ))}
         <p aria-live="polite">{message}</p>
