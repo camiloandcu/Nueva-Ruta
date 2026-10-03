@@ -1,4 +1,6 @@
 # n8n workflows
 
-WI-001 intentionally contains no business workflows. Reviewed workflow exports will be added by the work item that owns their behavior.
-
+`wi-004-inbound-ingestion.json` is the reviewable synthetic inbound workflow. It
+orchestrates one authenticated FastAPI call and branches on the same safe
+execution dimensions stored by the API: technical failure, rejected output,
+intentional deterministic processing, and success. It never sends a message.

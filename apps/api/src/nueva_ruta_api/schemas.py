@@ -52,3 +52,8 @@ class ResetResult(BaseModel):
     leads: int
     messages: int
     partner_rows: int
+    source_events: int = 0
+    decisions: int = 0
+    drafts: int = 0
+    escalations: int = 0
+    ai_attempts: int = 0

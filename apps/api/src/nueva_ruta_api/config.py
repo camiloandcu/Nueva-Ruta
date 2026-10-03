@@ -8,6 +8,9 @@ class Settings:
     supabase_anon_key: str
     supabase_service_role_key: str
     request_timeout_seconds: float = 3.0
+    ai_provider: str = "deterministic"
+    openai_api_key: str | None = None
+    openai_model: str = ""
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -26,6 +29,9 @@ class Settings:
             supabase_url=supabase_url,
             supabase_anon_key=supabase_anon_key,
             supabase_service_role_key=supabase_service_role_key,
+            ai_provider=os.getenv("AI_PROVIDER", "deterministic"),
+            openai_api_key=os.getenv("OPENAI_API_KEY") or None,
+            openai_model=os.getenv("OPENAI_MODEL", ""),
         )
 
     @property

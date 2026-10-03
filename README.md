@@ -90,4 +90,8 @@ The product reset is `POST /v1/admin/synthetic-baseline/reset`. It requires an a
 
 ## Current scope
 
-This increment proves runtime health, constrained persistence, server-side application roles, deterministic fixtures and protected reset. Lead ingestion, DMP pre-qualification, CRM dispositions, retries, partner normalization/reconciliation, reporting and content generation remain reserved for separately reviewed OpenSpec changes.
+This increment proves runtime health, constrained persistence, server-side application roles,
+deterministic fixtures, protected reset, idempotent synthetic lead ingestion, redacted
+triage, optional observable assistance and human-reviewed drafts. DMP pre-qualification,
+CRM dispositions, retries, partner normalization/reconciliation, reporting and content
+generation remain reserved for separately reviewed OpenSpec changes.
