@@ -35,3 +35,22 @@ class IngestionStore:
         response.raise_for_status()
         value: list[dict[str, Any]] = response.json()
         return value
+
+    async def select_rows(
+        self,
+        table: str,
+        *,
+        select: str = "*",
+        filters: dict[str, str] | None = None,
+        order: str | None = None,
+    ) -> list[dict[str, Any]]:
+        params = {"select": select, **(filters or {})}
+        if order:
+            params["order"] = order
+        async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
+            response = await client.get(
+                f"{self.settings.rest_url}/{table}", params=params, headers=self.headers
+            )
+        response.raise_for_status()
+        value: list[dict[str, Any]] = response.json()
+        return value

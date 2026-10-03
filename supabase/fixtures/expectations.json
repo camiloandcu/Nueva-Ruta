@@ -7,7 +7,10 @@
     "messages": 48,
     "consent_evidence": 48,
     "partner_import_jobs": 1,
-    "raw_partner_rows": 30
+    "raw_partner_rows": 30,
+    "partner_normalized_rows": 30,
+    "partner_duplicate_groups": 2,
+    "partner_reconciliation_cases": 28
   },
   "lead_cases": {
     "safe_complete": {"minimum": 8, "ids": ["LEAD-001", "LEAD-002", "LEAD-003", "LEAD-004", "LEAD-005", "LEAD-006", "LEAD-007", "LEAD-008"]},

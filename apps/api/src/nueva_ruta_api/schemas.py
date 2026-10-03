@@ -62,3 +62,6 @@ class ResetResult(BaseModel):
     partner_transfers: int = 0
     outbox_events: int = 0
     outbox_delivery_attempts: int = 0
+    partner_normalized_rows: int = 0
+    partner_duplicate_groups: int = 0
+    partner_reconciliation_cases: int = 0

@@ -35,6 +35,7 @@ services:
       dockerfile: apps/web/Dockerfile
     environment:
       API_BASE_URL: http://api:8000
+      N8N_PARTNER_IMPORT_WEBHOOK_URL: ${N8N_PARTNER_IMPORT_WEBHOOK_URL:-http://n8n:5678/webhook/wi-006-partner-import}
       SUPABASE_URL: ${SUPABASE_URL:?SUPABASE_URL is required}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?SUPABASE_ANON_KEY is required}
       ENABLE_SMOKE_ENDPOINTS: ${ENABLE_SMOKE_ENDPOINTS:-false}
