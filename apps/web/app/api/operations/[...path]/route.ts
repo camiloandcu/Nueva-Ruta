@@ -22,7 +22,7 @@ async function proxy(request: NextRequest, path: string[]) {
         "Content-Type":
           request.headers.get("content-type") ?? "application/json",
       },
-      body: request.method === "GET" ? undefined : await request.text(),
+      body: request.method === "GET" ? undefined : await request.arrayBuffer(),
       cache: "no-store",
     },
   );

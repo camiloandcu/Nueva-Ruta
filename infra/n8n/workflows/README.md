@@ -26,3 +26,10 @@ retaining general audit events. Callback validation and delivery success,
 retryable-failure and permanent-failure modes are exercised by API/database
 tests and the explicit simulator mode selector rather than by pre-authorizing a
 partner transfer during reset.
+
+`wi-006-partner-import.json` receives an imported synthetic partner job ID,
+forwards the caller's current operator access token to FastAPI normalization
+and reconciliation, and returns the resulting counts or an actionable error.
+It does not save execution payloads, access Supabase tables, or make analyst
+decisions. Next.js dispatches jobs through the local
+`N8N_PARTNER_IMPORT_WEBHOOK_URL` setting.

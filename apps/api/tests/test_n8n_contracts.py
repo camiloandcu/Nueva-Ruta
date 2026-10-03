@@ -55,3 +55,20 @@ def test_wi005_partner_workflow_dispatches_and_replays_only_through_fastapi() ->
         for condition in value["conditions"]["conditions"]
     }
     assert outcomes == {"delivered", "retry_scheduled", "dead_letter"}
+
+
+def test_wi006_import_workflow_uses_fastapi_and_does_not_persist_tokens() -> None:
+    workflow = json.loads((ROOT / "infra/n8n/workflows/wi-006-partner-import.json").read_text())
+    http_nodes = [
+        node for node in workflow["nodes"] if node["type"] == "n8n-nodes-base.httpRequest"
+    ]
+    assert len(http_nodes) == 1
+    assert "/v1/partner-imports/" in http_nodes[0]["parameters"]["url"]
+    assert "/process" in http_nodes[0]["parameters"]["url"]
+    assert "/rest/v1/" not in http_nodes[0]["parameters"]["url"]
+    assert (
+        "{{$json.headers.authorization}}"
+        in http_nodes[0]["parameters"]["headerParameters"]["parameters"][0]["value"]
+    )
+    assert workflow["settings"]["saveDataSuccessExecution"] == "none"
+    assert workflow["settings"]["saveDataErrorExecution"] == "none"

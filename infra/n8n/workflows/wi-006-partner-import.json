@@ -1,0 +1,40 @@
+{
+  "name": "WI-006 Synthetic Partner Import",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "wi-006-partner-import", "responseMode": "responseNode"},
+      "id": "webhook", "name": "Import job trigger", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://api:8000/v1/partner-imports/{{$json.body.import_job_id}}/process",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Authorization", "value": "={{$json.headers.authorization}}"}]},
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "fastapi", "name": "FastAPI normalization and reconciliation", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [260, 0]
+    },
+    {
+      "parameters": {"rules": {"values": [
+        {"conditions": {"conditions": [{"leftValue": "={{$json.case_count}}", "rightValue": 0, "operator": {"type": "number", "operation": "gt"}}]}, "renameOutput": true, "outputKey": "processed"},
+        {"conditions": {"conditions": [{"leftValue": "={{$json.detail}}", "rightValue": "", "operator": {"type": "string", "operation": "notEmpty"}}]}, "renameOutput": true, "outputKey": "recovery_error"}
+      ]}, "options": {"fallbackOutput": "extra", "renameFallbackOutput": "unexpected_response"}},
+      "id": "branch", "name": "Processing outcome", "type": "n8n-nodes-base.switch", "typeVersion": 3.2, "position": [520, 0]
+    },
+    {
+      "parameters": {"respondWith": "json", "responseBody": "={{$json}}"},
+      "id": "response", "name": "Return job result", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.4, "position": [800, 0]
+    }
+  ],
+  "connections": {
+    "Import job trigger": {"main": [[{"node": "FastAPI normalization and reconciliation", "type": "main", "index": 0}]]},
+    "FastAPI normalization and reconciliation": {"main": [[{"node": "Processing outcome", "type": "main", "index": 0}]]},
+    "Processing outcome": {"main": [[{"node": "Return job result", "type": "main", "index": 0}], [{"node": "Return job result", "type": "main", "index": 0}], [{"node": "Return job result", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1", "saveDataErrorExecution": "none", "saveDataSuccessExecution": "none"},
+  "active": false,
+  "versionId": "00000000-0000-4000-8000-000000000006",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": [{"name": "synthetic-only"}, {"name": "fastapi-boundary"}]
+}

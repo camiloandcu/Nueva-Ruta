@@ -254,7 +254,7 @@ No work item is currently active or approved for implementation.
 
 ## WI-006 — Partner import, cleaning and reconciliation
 
-- Status: proposed.
+- Status: implemented and verified (2026-10-03).
 - Business value: prevents dirty partner data from silently corrupting creator attribution and commission decisions.
 - Goal: import immutable raw rows, normalize reproducibly and reconcile conservatively with human review.
 

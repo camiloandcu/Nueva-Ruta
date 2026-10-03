@@ -96,3 +96,32 @@ test("WI-005 CRM UI exposes documented dispositions, recovery, and guarded actio
   assert.match(crm, /Reintentar manualmente/);
   assert.match(crm, /aria-live="polite"/);
 });
+
+test("WI-006 import UI preserves synthetic-only boundary and dispatches through n8n", () => {
+  const screen = readFileSync(
+    new URL(
+      "../app/operations/partners/partner-reconciliation.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  assert.match(screen, /synthetic_confirmation/);
+  assert.ok(screen.includes("partner-imports/${jobId}/dispatch"));
+  assert.match(screen, /Valores originales:/);
+  assert.match(screen, /quality_issues/);
+  assert.match(screen, /Aceptar candidato/);
+  assert.match(screen, /Enlazar manualmente/);
+  assert.match(screen, /Potencialmente comisionables/);
+  assert.match(screen, /Revisión previa/);
+  assert.match(screen, /aria-live="polite"/);
+  const dispatch = readFileSync(
+    new URL(
+      "../app/api/partner-imports/[id]/dispatch/route.ts",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  assert.match(dispatch, /supabase\.auth\.getSession/);
+  assert.match(dispatch, /N8N_PARTNER_IMPORT_WEBHOOK_URL/);
+  assert.match(dispatch, /Authorization: `Bearer \$\{token\}`/);
+});

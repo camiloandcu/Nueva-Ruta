@@ -11,6 +11,7 @@ export default function Home() {
         <a href="/operations/review">Revisión de borradores</a>
         <a href="/operations/crm">CRM y transferencias</a>
         <a href="/operations/ai">Observabilidad de IA</a>
+        <a href="/operations/partners">Importación y conciliación</a>
         <a href="/rules">Reglas</a>
       </nav>
     </main>
