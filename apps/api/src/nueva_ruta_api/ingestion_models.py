@@ -69,7 +69,9 @@ class ProcessingResult(StrictModel):
     ai_attempt_status: Literal[
         "not_attempted", "skipped_configuration", "succeeded", "failed", "rejected"
     ]
-    failure_layer: Literal["none", "configuration", "transport", "provider", "output_validation", "compliance"]
+    failure_layer: Literal[
+        "none", "configuration", "transport", "provider", "output_validation", "compliance"
+    ]
     normalized_reason: str
     redacted_message: str
     redaction_types: list[str]
@@ -78,4 +80,3 @@ class ProcessingResult(StrictModel):
     escalation_id: str | None = None
     automatic_effect_id: str | None = None
     replayed: bool = False
-

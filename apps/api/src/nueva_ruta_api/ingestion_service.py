@@ -94,4 +94,3 @@ def safe_log_fields(result: ProcessingResult) -> dict[str, Any]:
         "normalized_reason": result.normalized_reason,
         "redaction_types": result.redaction_types,
     }
-

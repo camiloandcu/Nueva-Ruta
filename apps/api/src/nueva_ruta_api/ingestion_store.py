@@ -35,4 +35,3 @@ class IngestionStore:
         response.raise_for_status()
         value: list[dict[str, Any]] = response.json()
         return value
-

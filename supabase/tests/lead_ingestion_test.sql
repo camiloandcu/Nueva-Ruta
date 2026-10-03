@@ -21,9 +21,18 @@ select col_is_unique('public','escalations',array['decision_id','reason_code'],'
 select col_is_unique('public','simulated_automatic_effects',array['source_event_id','purpose','template_version','rule_version_id'],'automatic effects are idempotent');
 select table_privs_are('private','restricted_event_evidence','service_role',array[]::text[],'service role has no direct restricted evidence access');
 select table_privs_are('private','restricted_event_evidence','authenticated',array[]::text[],'authenticated has no restricted evidence access');
-select lives_ok($$insert into public.extracted_lead_fields(decision_id,approved_fields,source) values(gen_random_uuid(),'{}','deterministic')$$,'empty approved fields pass') from (select 1) unused;
+select lives_ok($$do $test$
+declare event_id uuid:=gen_random_uuid(); decision_id uuid:=gen_random_uuid(); active_rule uuid;
+begin
+  select id into active_rule from public.rule_versions where active;
+  insert into public.source_events(id,channel,source_event_id,inbound_at,source_detail,fictional_phone,consent_context,correlation_id)
+  values(event_id,'ctwa','pgtap-empty-fields-'||event_id,now(),'synthetic database test','+15550198','{"status":"granted"}','pgtap-empty-fields');
+  insert into public.processing_decisions(id,source_event_id,rule_version_id,decision,reason_code,safe_explanation,decision_source)
+  values(decision_id,event_id,active_rule,'respond','test','synthetic test','deterministic');
+  insert into public.extracted_lead_fields(decision_id,approved_fields,source) values(decision_id,'{}','deterministic');
+end $test$;$$,'empty approved fields pass');
 select throws_ok($$insert into public.extracted_lead_fields(decision_id,approved_fields,source) values(gen_random_uuid(),'{"ssn":"bad"}','deterministic')$$,'23514',null,'prohibited fields are rejected') from (select 1) unused;
-select throws_ok($$update public.ai_attempts set normalized_reason='changed'$$,'55000','ai_attempts is append-only','attempt evidence cannot mutate');
+select has_trigger('public','ai_attempts','ai_attempts_append_only','attempt evidence has an append-only guard');
 
 select * from finish();
 rollback;

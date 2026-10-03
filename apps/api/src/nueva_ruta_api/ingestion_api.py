@@ -23,16 +23,22 @@ class ApprovalRequest(BaseModel):
     correlation_id: str = Field(min_length=1, max_length=100)
 
 
-@router.post("/ingestion/events", response_model=ProcessingResult, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/ingestion/events", response_model=ProcessingResult, status_code=status.HTTP_201_CREATED
+)
 async def ingest(event: InboundEvent, _: Operator, settings: Config) -> ProcessingResult:
     try:
         return await process_event(event, settings)
     except httpx.HTTPError as exc:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Ingestion store unavailable") from exc
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "Ingestion store unavailable"
+        ) from exc
 
 
 @router.get("/ingestion/results/{channel}/{source_event_id}", response_model=ProcessingResult)
-async def result(channel: str, source_event_id: str, _: Operator, settings: Config) -> dict[str, Any]:
+async def result(
+    channel: str, source_event_id: str, _: Operator, settings: Config
+) -> dict[str, Any]:
     try:
         return await IngestionStore(settings).rpc(
             "source_event_result", {"p_channel": channel, "p_source_event_id": source_event_id}
@@ -40,12 +46,16 @@ async def result(channel: str, source_event_id: str, _: Operator, settings: Conf
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code == 404:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Result not found") from exc
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Ingestion store unavailable") from exc
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "Ingestion store unavailable"
+        ) from exc
 
 
 @router.get("/operational/redacted-leads")
 async def redacted_leads(_: Operator, settings: Config) -> list[dict[str, Any]]:
-    return await IngestionStore(settings).rows("operational_redacted_leads", order="received_at.desc")
+    return await IngestionStore(settings).rows(
+        "operational_redacted_leads", order="received_at.desc"
+    )
 
 
 @router.get("/drafts/pending")
@@ -73,7 +83,9 @@ async def approve_draft(
             },
         )
     except httpx.HTTPError as exc:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Draft review unavailable") from exc
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "Draft review unavailable"
+        ) from exc
     if not review.valid:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, value)
     return value
@@ -92,4 +104,3 @@ async def ai_operations(
     if status_filter:
         filters["status"] = f"eq.{status_filter}"
     return await IngestionStore(settings).rows("ai_attempts", filters=filters)
-
