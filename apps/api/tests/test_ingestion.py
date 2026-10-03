@@ -69,8 +69,12 @@ def test_allowed_phone_and_approximate_amount_are_not_redacted(body: str) -> Non
 
 
 def test_decisive_triage_and_minimal_extraction() -> None:
-    assert classify(event("No me contacten"), redact("No me contacten")).reason_code == "explicit_opt_out"
-    assert classify(event("Mi abogado presentará demanda"), redact("Mi abogado presentará demanda")).decision == "escalate_human"
+    opt_out = classify(event("No me contacten"), redact("No me contacten"))
+    legal_risk = classify(
+        event("Mi abogado presentará demanda"), redact("Mi abogado presentará demanda")
+    )
+    assert opt_out.reason_code == "explicit_opt_out"
+    assert legal_risk.decision == "escalate_human"
     fields = extract_fields("Tengo $12,000 de tarjeta en TX y quiero un consejero")
     assert fields.model_dump() == {
         "approximate_debt": 12000,
@@ -108,10 +112,14 @@ def valid_output(**changes: Any) -> str:
 
 @pytest.mark.asyncio
 async def test_no_key_is_an_intentional_deterministic_path() -> None:
-    configured = Settings("http://db", "anon", "service", ai_provider="openai", openai_model="gpt-test")
+    configured = Settings(
+        "http://db", "anon", "service", ai_provider="openai", openai_model="gpt-test"
+    )
     attempt = await run_assistance(configured, "safe")
     assert (attempt.status, attempt.failure_layer, attempt.normalized_reason) == (
-        "skipped_configuration", "configuration", "missing_api_key"
+        "skipped_configuration",
+        "configuration",
+        "missing_api_key",
     )
 
 
@@ -124,17 +132,35 @@ async def test_no_key_is_an_intentional_deterministic_path() -> None:
     ],
 )
 async def test_transport_taxonomy(failure: Exception, layer: str, reason: str) -> None:
-    configured = Settings("http://db", "anon", "service", ai_provider="openai", openai_api_key="test", openai_model="test")
+    configured = Settings(
+        "http://db",
+        "anon",
+        "service",
+        ai_provider="openai",
+        openai_api_key="test",
+        openai_model="test",
+    )
     attempt = await run_assistance(configured, "safe", RawAdapter(failure))
     assert (attempt.failure_layer, attempt.normalized_reason) == (layer, reason)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("status_code,reason", [(401, "authentication"), (429, "rate_limit"), (503, "provider_5xx")])
+@pytest.mark.parametrize(
+    "status_code,reason", [(401, "authentication"), (429, "rate_limit"), (503, "provider_5xx")]
+)
 async def test_provider_taxonomy(status_code: int, reason: str) -> None:
     request = httpx.Request("POST", "https://provider.invalid")
-    failure = httpx.HTTPStatusError("provider", request=request, response=httpx.Response(status_code, request=request))
-    configured = Settings("http://db", "anon", "service", ai_provider="openai", openai_api_key="test", openai_model="test")
+    failure = httpx.HTTPStatusError(
+        "provider", request=request, response=httpx.Response(status_code, request=request)
+    )
+    configured = Settings(
+        "http://db",
+        "anon",
+        "service",
+        ai_provider="openai",
+        openai_api_key="test",
+        openai_model="test",
+    )
     attempt = await run_assistance(configured, "safe", RawAdapter(failure))
     assert (attempt.failure_layer, attempt.normalized_reason) == ("provider", reason)
 
@@ -164,4 +190,3 @@ async def test_concurrent_replay_returns_stable_original_result() -> None:
     assert len(store.values) == 1
     assert {first.replayed, second.replayed} == {False, True}
     assert "redacted_message" not in safe_log_fields(first)
-

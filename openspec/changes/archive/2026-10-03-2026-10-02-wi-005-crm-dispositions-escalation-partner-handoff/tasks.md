@@ -2,7 +2,7 @@
 
 - [x] 1.1 Define strict API/domain schemas for the five dispositions, escalation actions, transfer approval, delivery status and actionable error codes.
 - [x] 1.2 Add the Supabase migration for disposition audit, escalation lifecycle evidence, transfer approval/records, transactional outbox and append-only attempts with idempotency/uniqueness constraints.
-- [ ] 1.3 Extend deterministic reset and synthetic fixtures for disposition prerequisites, missing phone, callback validation, escalation SLA and delivery outcome modes.
+- [x] 1.3 Extend deterministic reset and synthetic fixtures for disposition prerequisites, missing phone, callback validation, escalation SLA and delivery outcome modes.
 - [x] 1.4 Add database transition/constraint tests proving invalid commands leave state unchanged and commercial/escalation/delivery states remain independent.
 
 ## 2. Escalation Lifecycle
@@ -23,14 +23,14 @@
 - [x] 4.1 Implement bounded outbox claiming, append-only attempt records, configurable bounded retry/backoff and terminal dead-letter handling.
 - [x] 4.2 Implement authorized audited manual replay that preserves one logical transfer and refuses replay of successful effects.
 - [x] 4.3 Extend the simulator contract with deterministic success, retryable and permanent failure modes plus partner idempotency behavior.
-- [ ] 4.4 Export n8n disposition and partner-transfer workflows with correlated success/retry/failure/replay branches calling FastAPI only.
-- [x] 4.5 Add API/simulator contract and database integration tests for successful handoff, retry, DLQ and replay.
+- [x] 4.4 Export n8n disposition and partner-transfer workflows with correlated success/retry/failure/replay branches calling FastAPI only.
+- [x] 4.5 Add API/simulator/n8n contract and database integration tests for successful handoff, retry, DLQ and replay.
 
 ## 5. Operational UI and Verification
 
 - [x] 5.1 Add the lead disposition UI and escalation queue/detail with assignment, ownership, SLA and documented resolution actions.
 - [x] 5.2 Add delivery history and safe recovery controls for missing phone, invalid disposition, webhook failure, exhausted retry and manual replay.
-- [ ] 5.3 Add UI/API tests for role boundaries, state independence, error recovery and no duplicate partner effect.
+- [x] 5.3 Add UI/API tests for role boundaries, state independence, error recovery and no duplicate partner effect.
 - [x] 5.4 Document WI-005 semantics, retry/replay policy and synthetic-only delivery boundary in the workflow README and verification report.
 - [x] 5.5 Run focused verification; record evidence in `docs/implementation/05_WI-005_VERIFICATION.md`.
 - [x] 5.6 Archive WI-005 and sync its specifications, then validate the resulting main specs.

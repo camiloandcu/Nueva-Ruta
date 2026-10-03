@@ -1,5 +1,5 @@
 begin;
-select plan(41);
+select plan(51);
 
 select has_table('public','crm_lead_states','commercial state is persisted separately');
 select has_table('public','crm_disposition_events','dispositions retain audit evidence');
@@ -83,6 +83,38 @@ $$,'missing phone creates visible recovery without partial disposition');
 select is((select count(*)::integer from public.crm_recovery_items recovery join public.crm_lead_states state on state.id=recovery.crm_lead_id join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-018' and recovery.reason_code='missing_phone' and recovery.status='open'),
   1,'missing phone creates one recovery task');
 
+select lives_ok($$select public.qualify_crm_lead(jsonb_build_object(
+  'actor_id',(select id from public.app_users where role='operator' and active limit 1),
+  'crm_lead_id',(select state.id from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-019'),
+  'reason','Synthetic callback fixture qualification','correlation_id','wi005-sql-callback-qualify'
+))$$,'callback test lead can be explicitly qualified');
+select lives_ok($$select public.apply_crm_disposition(jsonb_build_object(
+  'actor_id',(select id from public.app_users where role='operator' and active limit 1),
+  'crm_lead_id',(select state.id from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-019'),
+  'disposition','Call Back','idempotency_key','wi005-callback-valid-01','reason','Synthetic callback scheduled',
+  'callback_at',(now()+interval '1 day')::text,'timezone','America/Bogota','correlation_id','wi005-sql-callback-valid'
+))$$,'valid future callback records successfully');
+select is((select commercial_stage::text from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-019'),
+  'callback_scheduled','Call Back applies its documented commercial stage');
+select is((select prior_stage::text||':'||resulting_stage::text from public.crm_disposition_events where idempotency_key='wi005-callback-valid-01'),
+  'prequalified:callback_scheduled','Call Back records before/after audit evidence');
+
+select lives_ok($$select public.qualify_crm_lead(jsonb_build_object(
+  'actor_id',(select id from public.app_users where role='operator' and active limit 1),
+  'crm_lead_id',(select state.id from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-020'),
+  'reason','Synthetic close disposition test','correlation_id','wi005-sql-close-qualify'
+))$$,'not-interested test lead can be explicitly qualified');
+select lives_ok($$select public.apply_crm_disposition(jsonb_build_object(
+  'actor_id',(select id from public.app_users where role='operator' and active limit 1),
+  'crm_lead_id',(select state.id from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-020'),
+  'disposition','No le interesa','idempotency_key','wi005-not-interested-01','reason','Synthetic test close',
+  'correlation_id','wi005-sql-close'
+))$$,'No le interesa records without claiming opt-out when none was supplied');
+select is((select commercial_stage::text from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-020'),
+  'closed_not_interested','No le interesa applies its documented commercial stage');
+select is((select opted_out_at is null from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-020'),
+  true,'No le interesa does not invent explicit opt-out evidence');
+
 select lives_ok($$
   select public.approve_partner_transfer(jsonb_build_object(
     'actor_id',(select id from public.app_users where role='operator' and active limit 1),
@@ -131,6 +163,14 @@ select lives_ok($$select public.complete_partner_outbox(jsonb_build_object(
 select is((select status::text from public.outbox_events limit 1),'delivered','successful effect is terminal');
 select is((select commercial_stage::text from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-017'),
   'transferred','partner acceptance advances commercial stage');
+select lives_ok($$select public.apply_crm_disposition(jsonb_build_object(
+  'actor_id',(select id from public.app_users where role='operator' and active limit 1),
+  'crm_lead_id',(select state.id from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-017'),
+  'disposition','Transferido','idempotency_key','wi005-transferred-disposition-01','reason','Accepted synthetic partner transfer',
+  'correlation_id','wi005-sql-transferred-disposition'
+))$$,'Transferido is accepted only after partner acceptance');
+select is((select prior_stage::text||':'||resulting_stage::text from public.crm_disposition_events where idempotency_key='wi005-transferred-disposition-01'),
+  'transferred:transferred','Transferido records before/after audit evidence');
 select is((select count(*)::integer from public.outbox_delivery_attempts),3,'each transport attempt is retained');
 select throws_ok($$select public.replay_partner_outbox(jsonb_build_object(
   'actor_id',(select id from public.app_users where role='operator' and active limit 1),

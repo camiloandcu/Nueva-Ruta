@@ -11,6 +11,19 @@
     },
     {
       "parameters": {
+        "rules": {"values": [
+          {"conditions": {"conditions": [{"leftValue": "={{$json.operation}}", "rightValue": "replay", "operator": {"type": "string", "operation": "equals"}}]}, "renameOutput": true, "outputKey": "manual_replay"}
+        ]},
+        "options": {"fallbackOutput": "extra", "renameFallbackOutput": "process_due_transfers"}
+      },
+      "id": "delivery-operation",
+      "name": "Delivery operation",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [240, 220]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "={{$env.API_INTERNAL_URL}}/v1/crm/deliveries/process",
         "sendHeaders": true,
@@ -25,6 +38,36 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [260, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.API_INTERNAL_URL}}/v1/crm/deliveries/{{$json.event_id}}/replay",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Authorization", "value": "=Bearer {{$json.auth_token}}"}]},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({reason: $json.reason, correlation_id: $json.correlation_id})}}",
+        "options": {"response": {"response": {"neverError": true}}}
+      },
+      "id": "fastapi-replay",
+      "name": "FastAPI replay boundary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "rules": {"values": [
+          {"conditions": {"conditions": [{"leftValue": "={{$json.status}}", "rightValue": "pending", "operator": {"type": "string", "operation": "equals"}}]}, "renameOutput": true, "outputKey": "replay_queued"}
+        ]},
+        "options": {"fallbackOutput": "extra", "renameFallbackOutput": "replay_refused_or_api_error"}
+      },
+      "id": "replay-outcome",
+      "name": "Replay result",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [740, 300]
     },
     {
       "parameters": {
@@ -51,7 +94,10 @@
     }
   ],
   "connections": {
-    "Approved transfer dispatch": {"main": [[{"node": "FastAPI outbox boundary", "type": "main", "index": 0}]]},
+    "Approved transfer dispatch": {"main": [[{"node": "Delivery operation", "type": "main", "index": 0}]]},
+    "Delivery operation": {"main": [[{"node": "FastAPI replay boundary", "type": "main", "index": 0}], [{"node": "FastAPI outbox boundary", "type": "main", "index": 0}]]},
+    "FastAPI replay boundary": {"main": [[{"node": "Replay result", "type": "main", "index": 0}]]},
+    "Replay result": {"main": [[{"node": "Return delivery evidence", "type": "main", "index": 0}], [{"node": "Return delivery evidence", "type": "main", "index": 0}]]},
     "FastAPI outbox boundary": {"main": [[{"node": "Delivery outcome", "type": "main", "index": 0}]]},
     "Delivery outcome": {"main": [[{"node": "Return delivery evidence", "type": "main", "index": 0}], [{"node": "Return delivery evidence", "type": "main", "index": 0}], [{"node": "Return delivery evidence", "type": "main", "index": 0}], [{"node": "Return delivery evidence", "type": "main", "index": 0}]]}
   },

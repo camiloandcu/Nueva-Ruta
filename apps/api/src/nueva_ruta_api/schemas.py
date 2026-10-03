@@ -57,3 +57,8 @@ class ResetResult(BaseModel):
     drafts: int = 0
     escalations: int = 0
     ai_attempts: int = 0
+    crm_leads: int = 0
+    crm_recovery_items: int = 0
+    partner_transfers: int = 0
+    outbox_events: int = 0
+    outbox_delivery_attempts: int = 0
