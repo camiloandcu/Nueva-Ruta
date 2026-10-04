@@ -342,7 +342,7 @@ WI-007 implementation is approved and complete locally; its pull request is pend
 
 ## WI-008 — Creator profiles and content planning
 
-- Status: proposed.
+- Status: implemented and verified (2026-10-04); PR pending.
 - Business value: closes the loop between lead evidence, creator strategy and compliant content production.
 - Goal: expose complete creator profiles, rank sources transparently and deliver three traceable scripts.
 

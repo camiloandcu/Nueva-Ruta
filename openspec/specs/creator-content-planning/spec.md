@@ -1,5 +1,8 @@
-## ADDED Requirements
+# creator-content-planning Specification
 
+## Purpose
+TBD - created by archiving change wi-008-creator-content-planning. Update Purpose after archive.
+## Requirements
 ### Requirement: Safe complete creator profiles and funnel evidence
 The system SHALL expose the five approved fictional creator profiles with all approved persona and attribution fields and safe linked WI-007 funnel evidence through authenticated FastAPI contracts.
 
@@ -28,7 +31,7 @@ The system SHALL present exactly ten fictional source cards and rank them determ
 
 #### Scenario: High-risk source is viewed
 - **WHEN** a source has an unresolved high-risk compliance label
-- **THEN** it remains visible with its reason but is ineligible for an approvable script until reviewed
+- **THEN** it remains visible with its reason but is ineligible for selection in an approvable script
 
 #### Scenario: Creator/source comparison is interpreted
 - **WHEN** a viewer compares sources or creator-linked funnel evidence
@@ -59,3 +62,4 @@ The creator-content system SHALL operate only on clearly synthetic bundled recor
 #### Scenario: Viewer uses creator/content screens
 - **WHEN** a viewer browses a profile, source or script
 - **THEN** the system makes no external social request and displays fictional labels; no publish or schedule action is available
+

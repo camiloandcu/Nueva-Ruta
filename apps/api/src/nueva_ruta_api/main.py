@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException, Response, status
 
 from nueva_ruta_api.auth import Principal, Role, get_settings, require_roles
 from nueva_ruta_api.config import Settings
+from nueva_ruta_api.creator_content_api import router as creator_content_router
 from nueva_ruta_api.crm_api import router as crm_router
 from nueva_ruta_api.domain import DomainStore
 from nueva_ruta_api.ingestion_api import router as ingestion_router
@@ -24,6 +25,7 @@ app.include_router(rules_router)
 app.include_router(ingestion_router)
 app.include_router(partner_router)
 app.include_router(reporting_router)
+app.include_router(creator_content_router)
 app.include_router(crm_router)
 
 

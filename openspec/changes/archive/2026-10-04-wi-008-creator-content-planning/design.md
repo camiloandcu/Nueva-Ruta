@@ -35,7 +35,7 @@ For a requested fixed `as_of` instant:
 - **Freshness:** `max(0, 1 - age_days / 90)` from the source date and the reporting date for `as_of`.
 - **Compliance safety:** curated source-risk category mapped to a visible 0–1 safety value; high-risk sources remain visible with their reason but cannot be selected for an approvable script until reviewed.
 
-The proposed total is the arithmetic mean of the four normalized factors. Sort descending by total, then source date, then stable source ID. Return the raw evidence counts/date/risk tag and each normalized contribution alongside the total. If a required factor cannot be computed, report it as missing and do not fabricate a score. Display comparisons as descriptive evidence, not causal lift. The Product Owner should approve or change weights/risk treatment in this proposal review.
+The proposed total is the arithmetic mean of the four normalized factors. Sort descending by total, then source date, then stable source ID. Return the raw evidence counts/date/risk tag and each normalized contribution alongside the total. If a required factor cannot be computed, report it as missing and do not fabricate a score. High-risk source cards stay visible but are not eligible for script selection in this work item. Display comparisons as descriptive evidence, not causal lift. The Product Owner approved this weighting and risk treatment in the proposal review.
 
 ### Keep the first three scripts authored and human-reviewable
 

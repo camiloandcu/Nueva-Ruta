@@ -13,6 +13,7 @@ export default function Home() {
         <a href="/operations/ai">Observabilidad de IA</a>
         <a href="/operations/partners">Importación y conciliación</a>
         <a href="/operations/reports">Funnel y atribución</a>
+        <a href="/operations/creators">Creadores y contenido</a>
         <a href="/rules">Reglas</a>
       </nav>
     </main>
