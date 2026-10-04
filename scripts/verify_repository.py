@@ -1,4 +1,5 @@
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -52,7 +53,16 @@ secret_patterns = {
     "live payment key": r"\bsk_live_[A-Za-z0-9]{16,}\b",
 }
 ignored_parts = {".git", "node_modules", ".venv", ".next", ".supabase"}
-for path in ROOT.rglob("*"):
+repository_paths = subprocess.run(
+    ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    cwd=ROOT,
+    check=True,
+    stdout=subprocess.PIPE,
+).stdout.split(b"\0")
+for raw_path in repository_paths:
+    if not raw_path:
+        continue
+    path = ROOT / raw_path.decode("utf-8")
     if not path.is_file() or any(part in ignored_parts for part in path.parts):
         continue
     try:
@@ -68,4 +78,4 @@ if errors:
         print(f"ERROR: {error}", file=sys.stderr)
     raise SystemExit(1)
 
-print("Repository boundaries and tracked-file secret patterns verified.")
+print("Repository boundaries and tracked/non-ignored-file secret patterns verified.")
