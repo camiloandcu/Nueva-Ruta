@@ -150,3 +150,35 @@ test("WI-007 reports use the authenticated FastAPI proxy and preserve attributio
   );
   assert.match(home, /\/operations\/reports/);
 });
+
+test("WI-008 creator planning uses safe authenticated API contracts and role-gated actions", () => {
+  const planning = readFileSync(
+    new URL("../app/operations/creators/planning.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(planning, /\/api\/operations\/creators/);
+  assert.match(planning, /content\/sources\/ranking/);
+  assert.match(planning, /content\/scripts/);
+  assert.match(planning, /creator-content\/access/);
+  assert.match(planning, /access\.can_author/);
+  assert.match(planning, /access\.can_review/);
+  assert.match(planning, /Prioridad descriptiva/);
+  assert.match(planning, /No hay acciones de publicación\s+o programación/);
+  assert.match(planning, /script_selectable/);
+  assert.match(planning, /latest\.review\?\.reason/);
+  assert.doesNotMatch(
+    planning,
+    /supabase\.from\(|supabase\.rpc\(|publish|schedule/i,
+  );
+  const page = readFileSync(
+    new URL("../app/operations/creators/page.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(page, /WI-008/);
+  assert.match(page, /No\s+se publica, programa ni recopila/);
+  const home = readFileSync(
+    new URL("../app/page.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(home, /\/operations\/creators/);
+});
