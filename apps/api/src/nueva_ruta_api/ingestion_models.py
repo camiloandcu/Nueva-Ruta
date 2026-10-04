@@ -38,6 +38,8 @@ class InboundEvent(StrictModel):
         channel = info.data.get("channel")
         if channel == Channel.CTWA and value is None:
             raise ValueError("creator_business_id is required for CTWA")
+        if channel == Channel.ORGANIC and value is not None:
+            raise ValueError("organic events cannot claim creator attribution")
         return value
 
 

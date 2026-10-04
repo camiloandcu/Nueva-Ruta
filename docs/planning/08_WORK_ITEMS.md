@@ -14,7 +14,7 @@ Total budget: 96 hours
 6. The agent stops again before proposing the next item.
 7. Material discoveries update the durable planning documents and are reviewed before changing downstream scope.
 
-No work item is currently active or approved for implementation.
+WI-007 implementation is approved and complete locally; its pull request is pending. No other work item is active.
 
 ## Sequence overview
 
@@ -297,7 +297,7 @@ No work item is currently active or approved for implementation.
 
 ## WI-007 — Funnel, stalled-work and attribution reporting
 
-- Status: proposed.
+- Status: implemented and verified locally; pull request pending.
 - Business value: gives Nueva Ruta and Influgain a shared view of operational health, creator quality and commission risk.
 - Goal: implement governed metric queries and Spanish dashboards using the approved definitions.
 - UI delivery: implement the dashboards in Next.js while FastAPI remains the only source of business queries.

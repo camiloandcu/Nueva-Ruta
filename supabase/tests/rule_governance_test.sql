@@ -1,10 +1,10 @@
 begin;
 select plan(22);
 
-select is((select count(*) from public.rule_versions), 1::bigint, 'one seeded rule version');
+select is((select count(*) from public.rule_versions), 2::bigint, 'historical v1 and current v2 are seeded');
 select is((select count(*) from public.rule_versions where active), 1::bigint, 'seeded version is active');
-select is((select version from public.rule_versions where active), 1, 'initial version number is one');
-select is((select content_hash from public.rule_versions where active), 'b229bf8f6e7c8e55deed9975b5d5ca2a88bf664783aefa5586906dc74aae71e4', 'seed hash is stable');
+select is((select version from public.rule_versions where active), 2, 'approved reporting policy is active as version two');
+select is((select content_hash from public.rule_versions where active), '5a3356441b5ae2e3a3b43a718bfa5776605af2f5ef5aa6246b5ff887cbf61316', 'v2 seed hash is stable');
 select is((select (content #>> '{debt_policy,minimum}')::integer from public.rule_versions where active), 5000, 'minimum debt is approved');
 select is((select (content #>> '{debt_policy,maximum}')::integer from public.rule_versions where active), 100000, 'maximum debt is approved');
 select is((select content #>> '{operating_schedule,timezone}' from public.rule_versions where active), 'America/New_York', 'timezone is approved');
@@ -21,23 +21,23 @@ select throws_ok(
 
 insert into public.rule_drafts(content, content_hash, valid, source_name, created_by)
 select content, repeat('a', 64), true, 'test rollback', private.fixture_uuid('rule-system-actor')
-from public.rule_versions where version = 1;
+from public.rule_versions where version = 2;
 select is((select count(*) from public.rule_drafts), 1::bigint, 'draft persists separately');
 select ok((select derived_from_version_id is null from public.rule_drafts limit 1), 'ordinary draft has no rollback lineage');
-select ok((select active from public.rule_versions where version = 1), 'draft creation does not change active version');
+select ok((select active from public.rule_versions where version = 2), 'draft creation does not change active version');
 
 insert into public.rule_drafts(content, content_hash, valid, source_name, created_by)
 select jsonb_set(content, '{escalation,sla_minutes}', '45'::jsonb), repeat('b', 64), true,
   'publish test', (select id from public.app_users where role = 'supervisor' limit 1)
-from public.rule_versions where version = 1;
+from public.rule_versions where version = 2;
 select public.publish_rule_draft(
   (select id from public.rule_drafts where source_name = 'publish test'),
   (select id from public.app_users where role = 'supervisor' limit 1),
   repeat('b', 64), 'reviewed test change', 'rule-publish-1'
 );
-select is((select max(version) from public.rule_versions), 2, 'publication allocates next version');
-select is((select parent_version_id from public.rule_versions where version = 2),
-  (select id from public.rule_versions where version = 1), 'publication records active parent');
+select is((select max(version) from public.rule_versions), 3, 'publication allocates next version');
+select is((select parent_version_id from public.rule_versions where version = 3),
+  (select id from public.rule_versions where version = 2), 'publication records active parent');
 select is((select count(*) from public.audit_events where action = 'rules.publish'), 1::bigint,
   'publication creates audit evidence');
 
@@ -46,24 +46,24 @@ insert into public.rule_drafts(
 )
 select content, content_hash, true, 'rollback test',
   (select id from public.app_users where role = 'supervisor' limit 1), id
-from public.rule_versions where version = 1;
+from public.rule_versions where version = 2;
 select public.publish_rule_draft(
   (select id from public.rule_drafts where source_name = 'rollback test'),
   (select id from public.app_users where role = 'supervisor' limit 1),
-  'b229bf8f6e7c8e55deed9975b5d5ca2a88bf664783aefa5586906dc74aae71e4',
+  '5a3356441b5ae2e3a3b43a718bfa5776605af2f5ef5aa6246b5ff887cbf61316',
   'reviewed rollback', 'rule-publish-2'
 );
-select is((select max(version) from public.rule_versions), 3, 'rollback is a new monotonic version');
-select is((select derived_from_version_id from public.rule_versions where version = 3),
-  (select id from public.rule_versions where version = 1), 'rollback preserves derivation lineage');
-select is((select parent_version_id from public.rule_versions where version = 3),
-  (select id from public.rule_versions where version = 2), 'rollback preserves current parent');
-select ok((select active from public.rule_versions where version = 3), 'rollback version becomes active');
+select is((select max(version) from public.rule_versions), 4, 'rollback is a new monotonic version');
+select is((select derived_from_version_id from public.rule_versions where version = 4),
+  (select id from public.rule_versions where version = 2), 'rollback preserves derivation lineage');
+select is((select parent_version_id from public.rule_versions where version = 4),
+  (select id from public.rule_versions where version = 3), 'rollback preserves current parent');
+select ok((select active from public.rule_versions where version = 4), 'rollback version becomes active');
 
 insert into public.rule_drafts(content, content_hash, valid, source_name, created_by)
 select content, repeat('c', 64), true, 'stale test',
   (select id from public.app_users where role = 'supervisor' limit 1)
-from public.rule_versions where version = 3;
+from public.rule_versions where version = 4;
 select throws_ok(
   format(
     'select public.publish_rule_draft(%L, %L, %L, %L, %L)',
@@ -76,13 +76,13 @@ select throws_ok(
 insert into public.rule_drafts(content, content_hash, valid, source_name, created_by)
 select content, content_hash, true, 'duplicate test',
   (select id from public.app_users where role = 'supervisor' limit 1)
-from public.rule_versions where version = 3;
+from public.rule_versions where version = 4;
 select throws_ok(
   format(
     'select public.publish_rule_draft(%L, %L, %L, %L, %L)',
     (select id from public.rule_drafts where source_name = 'duplicate test'),
     (select id from public.app_users where role = 'supervisor' limit 1),
-    'b229bf8f6e7c8e55deed9975b5d5ca2a88bf664783aefa5586906dc74aae71e4',
+    '5a3356441b5ae2e3a3b43a718bfa5776605af2f5ef5aa6246b5ff887cbf61316',
     'duplicate confirmation', 'rule-publish-duplicate'
   ), '23505', 'duplicate active rule content', 'duplicate publication is rejected'
 );

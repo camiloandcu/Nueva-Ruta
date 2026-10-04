@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 policy_id: nueva-ruta-fictional-defaults
 classification:
   triggers:
@@ -19,6 +19,15 @@ operating_schedule:
   closes_at: "18:00"
 escalation:
   sla_minutes: 30
+stalled_work:
+  approaching_ratio: 0.8
+  callback_approaching_minutes: 15
+  new_unclassified_minutes: 15
+  human_review_pending_business_hours: 4
+  prequalified_without_disposition_business_hours: 8
+  info_sent_without_activity_hours: 24
+  transferred_without_partner_confirmation_hours: 48
+  reconciliation_conflict_unresolved_business_days: 2
 retry_policy:
   maximum_attempts: 3
   delays_minutes: [5, 30, 120]
