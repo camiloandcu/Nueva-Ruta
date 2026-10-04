@@ -26,7 +26,25 @@ def test_fictional_defaults_round_trip_and_hash_are_stable() -> None:
     assert document.debt_policy.maximum == 100_000
     assert set(document.state_coverage.included) == {"CA", "TX", "FL"}
     assert set(template.purpose for template in document.automatic_templates) == AUTOMATIC_PURPOSES
+    assert document.schema_version == 2
+    assert document.stalled_work is not None
+    assert document.stalled_work.new_unclassified_minutes == 15
+    assert document.stalled_work.reconciliation_conflict_unresolved_business_days == 2
     assert compliance_violations(document) == []
+
+
+def test_schema_v1_history_remains_valid_and_stalled_thresholds_are_strict() -> None:
+    value = parse_yaml(SEED).model_dump(mode="json")
+    value["schema_version"] = 1
+    value.pop("stalled_work")
+    assert RuleDocument.model_validate(value).schema_version == 1
+    value["schema_version"] = 2
+    with pytest.raises(ValidationError, match="requires stalled_work"):
+        RuleDocument.model_validate(value)
+    value = parse_yaml(SEED).model_dump(mode="json")
+    value["stalled_work"]["approaching_ratio"] = 1
+    with pytest.raises(ValidationError):
+        RuleDocument.model_validate(value)
 
 
 def test_unknown_fields_and_conflicting_ranges_are_rejected() -> None:

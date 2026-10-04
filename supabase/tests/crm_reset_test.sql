@@ -50,8 +50,8 @@ select lives_ok($$select public.apply_crm_disposition(jsonb_build_object(
 ))$$,'test setup creates a CRM disposition and draft');
 select is((select count(*)::integer from public.outbox_delivery_attempts), 1,
   'test setup confirms accumulated append-only attempt evidence exists');
-select is((select count(*)::integer from public.crm_disposition_events), 1,
-  'test setup confirms accumulated disposition state exists');
+select is((select count(*)::integer from public.crm_disposition_events), 7,
+  'test setup confirms the additional disposition exists alongside six deterministic reporting dispositions');
 
 select lives_ok($$
   select public.reset_synthetic_baseline(
@@ -71,8 +71,8 @@ select is((select count(*)::integer from public.outbox_events), 0,
   'repeated reset clears the approved delivery transaction');
 select is((select count(*)::integer from public.outbox_delivery_attempts), 0,
   'authorized reset clears append-only attempts without clearing general audit events');
-select is((select count(*)::integer from public.crm_disposition_events), 0,
-  'repeated reset clears synthetic disposition evidence from the recreated baseline');
+select is((select count(*)::integer from public.crm_disposition_events), 6,
+  'repeated reset clears prior commands and restores only six deterministic WI-007 timing dispositions');
 
 select * from finish();
 rollback;

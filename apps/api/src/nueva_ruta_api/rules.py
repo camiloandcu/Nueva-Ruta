@@ -65,6 +65,17 @@ class EscalationPolicy(StrictModel):
     sla_minutes: int = Field(gt=0, le=1440)
 
 
+class StalledWorkPolicy(StrictModel):
+    approaching_ratio: float = Field(gt=0, lt=1)
+    callback_approaching_minutes: int = Field(gt=0, le=1440)
+    new_unclassified_minutes: int = Field(gt=0)
+    human_review_pending_business_hours: int = Field(gt=0)
+    prequalified_without_disposition_business_hours: int = Field(gt=0)
+    info_sent_without_activity_hours: int = Field(gt=0)
+    transferred_without_partner_confirmation_hours: int = Field(gt=0)
+    reconciliation_conflict_unresolved_business_days: int = Field(gt=0)
+
+
 class RetryPolicy(StrictModel):
     maximum_attempts: int = Field(ge=0, le=10)
     delays_minutes: list[int]
@@ -97,13 +108,14 @@ class CompliancePolicy(StrictModel):
 
 
 class RuleDocument(StrictModel):
-    schema_version: Literal[1]
+    schema_version: Literal[1, 2]
     policy_id: str = Field(pattern=r"^[a-z][a-z0-9-]+$")
     classification: ClassificationPolicy
     debt_policy: DebtPolicy
     state_coverage: StateCoverage
     operating_schedule: OperatingSchedule
     escalation: EscalationPolicy
+    stalled_work: StalledWorkPolicy | None = None
     retry_policy: RetryPolicy
     stage_transitions: dict[str, list[str]]
     automatic_templates: list[AutomaticTemplate]
@@ -112,6 +124,8 @@ class RuleDocument(StrictModel):
 
     @model_validator(mode="after")
     def valid_references(self) -> RuleDocument:
+        if (self.schema_version == 2) != (self.stalled_work is not None):
+            raise ValueError("schema version 2 requires stalled_work; version 1 must omit it")
         stages = set(self.stage_transitions)
         referenced = {target for targets in self.stage_transitions.values() for target in targets}
         trigger_targets = {trigger.target_stage for trigger in self.classification.triggers}

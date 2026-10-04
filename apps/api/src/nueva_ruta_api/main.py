@@ -9,6 +9,7 @@ from nueva_ruta_api.crm_api import router as crm_router
 from nueva_ruta_api.domain import DomainStore
 from nueva_ruta_api.ingestion_api import router as ingestion_router
 from nueva_ruta_api.partner_api import router as partner_router
+from nueva_ruta_api.reporting_api import router as reporting_router
 from nueva_ruta_api.rules_api import router as rules_router
 from nueva_ruta_api.schemas import (
     AnalystLead,
@@ -22,6 +23,7 @@ app = FastAPI(title="Nueva Ruta API", version="0.1.0")
 app.include_router(rules_router)
 app.include_router(ingestion_router)
 app.include_router(partner_router)
+app.include_router(reporting_router)
 app.include_router(crm_router)
 
 

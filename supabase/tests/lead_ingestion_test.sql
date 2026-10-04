@@ -25,8 +25,9 @@ select lives_ok($$do $test$
 declare event_id uuid:=gen_random_uuid(); decision_id uuid:=gen_random_uuid(); active_rule uuid;
 begin
   select id into active_rule from public.rule_versions where active;
-  insert into public.source_events(id,channel,source_event_id,inbound_at,source_detail,fictional_phone,consent_context,correlation_id)
-  values(event_id,'ctwa','pgtap-empty-fields-'||event_id,now(),'synthetic database test','+15550198','{"status":"granted"}','pgtap-empty-fields');
+  insert into public.source_events(id,channel,source_event_id,inbound_at,source_detail,fictional_phone,consent_context,correlation_id,creator_id)
+  values(event_id,'ctwa','pgtap-empty-fields-'||event_id,now(),'synthetic database test','+15550198','{"status":"granted"}','pgtap-empty-fields',
+    (select id from public.creators where business_id='CR-001'));
   insert into public.processing_decisions(id,source_event_id,rule_version_id,decision,reason_code,safe_explanation,decision_source)
   values(decision_id,event_id,active_rule,'respond','test','synthetic test','deterministic');
   insert into public.extracted_lead_fields(decision_id,approved_fields,source) values(decision_id,'{}','deterministic');

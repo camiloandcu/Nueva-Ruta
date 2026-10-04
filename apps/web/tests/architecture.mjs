@@ -125,3 +125,28 @@ test("WI-006 import UI preserves synthetic-only boundary and dispatches through 
   assert.match(dispatch, /N8N_PARTNER_IMPORT_WEBHOOK_URL/);
   assert.match(dispatch, /Authorization: `Bearer \$\{token\}`/);
 });
+
+test("WI-007 reports use the authenticated FastAPI proxy and preserve attribution caveats", () => {
+  const dashboard = readFileSync(
+    new URL("../app/operations/reports/reports-dashboard.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(dashboard, /\/api\/operations\/reports\/overview/);
+  assert.match(dashboard, /\/api\/operations\/reports\/enrollments/);
+  assert.match(dashboard, /Denominador/);
+  assert.match(dashboard, /Sin atribución/);
+  assert.match(dashboard, /no calcula dinero/i);
+  assert.match(dashboard, /stalled_pagination/);
+  assert.match(dashboard, /Siguiente/);
+  assert.doesNotMatch(dashboard, /supabase\.from\(|supabase\.rpc\(/);
+  const page = readFileSync(
+    new URL("../app/operations/reports/page.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(page, /Métricas operativas/);
+  const home = readFileSync(
+    new URL("../app/page.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(home, /\/operations\/reports/);
+});

@@ -119,6 +119,168 @@ code {
   margin-top: 2rem;
 }
 
+.report-stack {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.report-filters label {
+  min-width: 8rem;
+}
+
+.report-filters input,
+.report-filters select {
+  min-height: 2.5rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #b9b4a7;
+  border-radius: 0.4rem;
+  background: #fff;
+  color: inherit;
+}
+
+.report-filters button,
+.report-panel button {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #17332d;
+  border-radius: 0.4rem;
+  background: #17332d;
+  color: #fff;
+  cursor: pointer;
+}
+
+.report-filters button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.report-note {
+  max-width: none;
+  margin: 0;
+  color: #5e665f;
+  font-size: 0.88rem;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.8rem;
+}
+
+.report-grid-two {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.metric-card,
+.report-panel {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #d8d3c5;
+  border-radius: 0.8rem;
+  background: #fffdf8;
+}
+
+.metric-card {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+}
+
+.metric-card strong {
+  font-size: 2rem;
+}
+
+.metric-card small {
+  color: #5e665f;
+  line-height: 1.4;
+}
+
+.report-panel h2 {
+  margin-top: 0;
+}
+
+.report-panel h3 {
+  margin-bottom: 0.4rem;
+}
+
+.report-panel p {
+  max-width: none;
+  line-height: 1.5;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table-scroll th,
+.table-scroll td {
+  padding: 0.65rem 0.55rem;
+  border-bottom: 1px solid #e4dfd2;
+  vertical-align: top;
+}
+
+.table-scroll thead th {
+  color: #5e665f;
+  font-size: 0.82rem;
+}
+
+.metric-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.7rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.metric-list li,
+.number-pair {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.number-pair {
+  justify-content: flex-start;
+  gap: 2rem;
+}
+
+.number-pair span {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.number-pair strong {
+  font-size: 1.6rem;
+}
+
+.badge-approaching {
+  background: #f5e7ba;
+}
+
+.badge-breached,
+.badge-missing_evidence {
+  background: #f7d8cc;
+  color: #762912;
+}
+
+.error-panel {
+  border-color: #a8321f;
+  color: #762912;
+}
+
+@media (max-width: 600px) {
+  .report-filters label {
+    flex: 1 1 45%;
+  }
+}
+
 .panel {
   padding: 1.25rem;
   border: 1px solid #d8d3c5;
