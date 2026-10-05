@@ -11,8 +11,8 @@ select lives_ok($$
 $$, 'supervisor reset restores WI-005 preview fixtures');
 
 select is((select count(*)::integer from public.leads), 48, 'reset restores 48 baseline leads');
-select is((select count(*)::integer from public.crm_lead_states), 49,
-  'reset restores one CRM state per baseline lead plus the SLA fixture');
+select is((select count(*)::integer from public.crm_lead_states), 52,
+  'reset restores baseline, SLA and three reviewable inbound CRM states');
 select is((select count(*)::integer from public.crm_recovery_items where status='open'), 1,
   'reset restores one open missing-phone recovery fixture');
 select is((select count(*)::integer from public.operational_escalations where sla_breached), 1,
@@ -61,7 +61,7 @@ select lives_ok($$
     'wi005-crm-reset-two'
   )
 $$, 'a second supervisor reset succeeds after CRM and delivery fixture state exists');
-select is((select count(*)::integer from public.crm_lead_states), 49,
+select is((select count(*)::integer from public.crm_lead_states), 52,
   'repeated reset produces the same CRM state count');
 select is((select count(*)::integer from public.crm_recovery_items where status='open'), 1,
   'repeated reset produces the same recovery fixture count');

@@ -65,7 +65,6 @@ WI-009 defines a short-lived, authenticated synthetic demo on Railway + Supabase
 - [Compliance and AI boundary](docs/planning/06_COMPLIANCE_AND_AI.md) · [AI-use guide](docs/08_AI_USE.md)
 - [Partner data cleaning and reconciliation](docs/10_PARTNER_DATA_CLEANING.md)
 - [Synthetic load method and report](docs/11_SCALE_REPORT.md)
-- [Six-minute Spanish demo and recording checklist](docs/12_DEMO_SCRIPT.md)
 - [Product and requirements index](docs/planning/00_INDEX.md) · [work items](docs/planning/08_WORK_ITEMS.md) · [decision log](docs/planning/07_DECISIONS.md)
 - [Implementation verification reports](docs/implementation/)
 - [n8n workflow export/import notes](infra/n8n/workflows/README.md)

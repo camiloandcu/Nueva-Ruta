@@ -317,7 +317,7 @@ export default function ReportsDashboard() {
       )}
       {!report && !error && (
         <section className="panel" aria-live="polite">
-          Cargando métricas sintéticas…
+          Cargando métricas…
         </section>
       )}
       {report && (

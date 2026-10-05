@@ -89,7 +89,10 @@ test("AI operations exposes exact safe execution dimensions", () => {
   assert.match(timeline, /correlation_id/);
   assert.match(timeline, /failure_layer/);
   assert.match(timeline, /normalized_reason/);
-  assert.doesNotMatch(timeline, /message|prompt|reasoning/);
+  assert.doesNotMatch(
+    timeline,
+    /original_body|redacted_body|prompt_version|reasoning/,
+  );
 });
 
 test("WI-005 CRM UI exposes documented dispositions, recovery, and guarded actions", () => {
@@ -106,10 +109,9 @@ test("WI-005 CRM UI exposes documented dispositions, recovery, and guarded actio
     ["No Answer", "Info Sent", "Transferido", "Call Back", "No le interesa"],
   );
   assert.match(crm, /callback_at/);
-  assert.match(
-    crm,
-    /Teléfono ficticio: \{lead\.fictional_phone \?\? "No disponible"\}/,
-  );
+  assert.match(crm, /Teléfono: \{lead\.fictional_phone \?\? "No disponible"\}/);
+  assert.match(crm, /Historial de disposiciones/);
+  assert.match(crm, /prior_stage.*resulting_stage/s);
   assert.match(crm, /disabled=\{\s*lead\.opted_out \|\|\s*!\s*\[/);
   assert.match(crm, /"prequalified"[\s\S]*"callback_scheduled"/);
   assert.match(crm, /delivery\.status === "dead_letter"/);
@@ -127,7 +129,8 @@ test("WI-006 import UI preserves synthetic-only boundary and dispatches through 
   );
   assert.match(screen, /synthetic_confirmation/);
   assert.ok(screen.includes("partner-imports/${jobId}/dispatch"));
-  assert.match(screen, /Valores originales:/);
+  assert.match(screen, /Valores normalizados:/);
+  assert.match(screen, /Evidencia de transformación/);
   assert.match(screen, /quality_issues/);
   assert.match(screen, /Aceptar candidato/);
   assert.match(screen, /Enlazar manualmente/);
@@ -163,9 +166,9 @@ test("WI-007 reports use the authenticated FastAPI proxy and preserve attributio
     new URL("../app/operations/reports/page.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(page, /Métricas operativas/);
+  assert.match(page, /Datos y reporting/);
   const home = readFileSync(
-    new URL("../app/page.tsx", import.meta.url),
+    new URL("../app/home-workspace.tsx", import.meta.url),
     "utf8",
   );
   assert.match(home, /\/operations\/reports/);
@@ -194,10 +197,10 @@ test("WI-008 creator planning uses safe authenticated API contracts and role-gat
     new URL("../app/operations/creators/page.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(page, /WI-008/);
-  assert.match(page, /No\s+se publica, programa ni recopila/);
+  assert.match(page, /Sistema de contenido/);
+  assert.match(page, /guiones pendientes de revisión/);
   const home = readFileSync(
-    new URL("../app/page.tsx", import.meta.url),
+    new URL("../app/home-workspace.tsx", import.meta.url),
     "utf8",
   );
   assert.match(home, /\/operations\/creators/);

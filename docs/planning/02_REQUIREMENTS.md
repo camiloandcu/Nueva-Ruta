@@ -203,7 +203,7 @@ A supervisor SHALL have a protected, confirmed reset that restores the synthetic
 
 ### REQ-E09 — Documentation and video
 
-The repository SHALL deliver a product-facing README, exported n8n workflows, architecture, decisions, compliance, cleaning, AI-use and scale notes, and a demo script/recording no longer than six minutes.
+The repository SHALL deliver a product-facing README, exported n8n workflows, architecture, decisions, compliance, cleaning, AI-use and scale notes. The application flow SHALL support a concise evaluator-led walkthrough.
 
 ### REQ-E10 — External services
 

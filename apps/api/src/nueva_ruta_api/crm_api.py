@@ -155,6 +155,11 @@ async def crm_leads(
     )
 
 
+@router.get("/dispositions")
+async def dispositions(_: Operator, settings: Config) -> list[dict[str, Any]]:
+    return await CrmStore(settings).rows("crm_disposition_events", order="occurred_at.desc")
+
+
 @router.post("/leads/{crm_lead_id}/qualify")
 async def qualify_lead(
     crm_lead_id: UUID, body: QualificationRequest, actor: Operator, settings: Config

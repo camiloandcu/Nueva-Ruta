@@ -58,3 +58,41 @@ async def test_analyst_cannot_ingest_or_view_operations() -> None:
         assert client.post("/v1/ingestion/events", json=inbound()).status_code == 403
         assert client.get("/v1/operations/ai").status_code == 403
 
+
+@pytest.mark.asyncio
+async def test_operator_can_read_review_drafts_without_a_direct_database_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def rows(self: IngestionStore, table: str, **kwargs: object) -> list[dict[str, str]]:
+        del self
+        assert table == "response_drafts"
+        assert kwargs == {"order": "created_at.desc"}
+        return [{"id": "draft-1", "status": "approved"}]
+
+    monkeypatch.setattr(IngestionStore, "rows", rows)
+    async with client_for(Role.OPERATOR) as client:
+        response = client.get("/v1/drafts")
+
+    assert response.status_code == 200
+    assert response.json() == [{"id": "draft-1", "status": "approved"}]
+
+
+@pytest.mark.asyncio
+async def test_supervisor_can_read_minimized_assistance_trace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def rows(self: IngestionStore, table: str, **kwargs: object) -> list[dict[str, str]]:
+        del self
+        assert table == "operational_assistance_attempts"
+        assert kwargs == {
+            "filters": {"correlation_id": "eq.flow-001"},
+            "order": "created_at.desc",
+        }
+        return [{"correlation_id": "flow-001", "decision": "respond"}]
+
+    monkeypatch.setattr(IngestionStore, "rows", rows)
+    async with client_for(Role.SUPERVISOR) as client:
+        response = client.get("/v1/operations/ai?correlation_id=flow-001")
+
+    assert response.status_code == 200
+    assert response.json() == [{"correlation_id": "flow-001", "decision": "respond"}]

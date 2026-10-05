@@ -395,7 +395,7 @@ WI-007 implementation is approved and complete locally; its pull request is pend
 - Product-facing README and verified sub-fifteen-minute quickstart.
 - Final architecture, decisions, compliance, cleaning, AI-use and scale documentation.
 - Exported/importable n8n workflows.
-- Six-minute video script and recording checklist.
+- Evaluator-ready application flow for a concise recording.
 - Conditional temporary Railway + Supabase Cloud setup under ADR-025's hard cost and expiry limits.
 - Final local demo reset rehearsal.
 
@@ -422,7 +422,7 @@ WI-007 implementation is approved and complete locally; its pull request is pend
 - Full automated checks.
 - Load and reset runs.
 - Documentation link/checklist review.
-- Timed video dry run.
+- End-to-end evaluator walkthrough.
 
 ### Future `opsx:propose` input
 

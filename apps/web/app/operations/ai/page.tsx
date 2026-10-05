@@ -7,11 +7,11 @@ export default async function AiOperationsPage() {
   const { data } = await supabase.auth.getSession();
   return (
     <main className="operations-shell">
-      <div className="eyebrow">Observabilidad segura · WI-004</div>
+      <div className="eyebrow">Decisiones y respaldo operativo</div>
       <h1>Ejecuciones de asistencia</h1>
       <p>
-        Taxonomía correlacionada sin texto de mensajes, secretos ni razonamiento
-        interno.
+        Consulta cómo se procesó cada entrada y abre su caso usando el
+        identificador de correlación.
       </p>
       {data.session ? (
         <AiTimeline />

@@ -65,6 +65,11 @@ async def pending_drafts(_: Operator, settings: Config) -> list[dict[str, Any]]:
     )
 
 
+@router.get("/drafts")
+async def drafts(_: Operator, settings: Config) -> list[dict[str, Any]]:
+    return await IngestionStore(settings).rows("response_drafts", order="created_at.desc")
+
+
 @router.post("/drafts/{draft_id}/approve")
 async def approve_draft(
     draft_id: UUID, request: ApprovalRequest, principal: Operator, settings: Config
@@ -103,4 +108,6 @@ async def ai_operations(
         filters["correlation_id"] = f"eq.{correlation_id}"
     if status_filter:
         filters["status"] = f"eq.{status_filter}"
-    return await IngestionStore(settings).rows("ai_attempts", filters=filters)
+    return await IngestionStore(settings).rows(
+        "operational_assistance_attempts", filters=filters, order="created_at.desc"
+    )

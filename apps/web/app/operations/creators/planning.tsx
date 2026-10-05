@@ -161,205 +161,211 @@ export default function CreatorContentPlanning() {
   });
 
   return (
-    <div className="operation-grid">
-      <section className="panel">
-        <h2>Perfiles ficticios ({visibleCreators.length}/5)</h2>
-        <label className="filter-row">
-          Plataforma
-          <select
-            value={platform}
-            onChange={(event) => setPlatform(event.target.value)}
-          >
-            <option>Todas</option>
-            {[...new Set(creators.flatMap((item) => item.platforms))]
-              .sort()
-              .map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-          </select>
-        </label>
-        {visibleCreators.map((creator) => (
-          <article className="evidence-card" key={creator.business_id}>
-            <h3>
-              {creator.fictional_name}{" "}
-              <span className="badge">{creator.business_id}</span>
-            </h3>
-            <p>
-              {creator.handle} · {creator.platforms.join(", ")}
-            </p>
-            <p>
-              <strong>Audiencia:</strong> {creator.audience_archetype}
-            </p>
-            <p>
-              <strong>Voz:</strong> {creator.voice}
-            </p>
-            <p>
-              <strong>Pilares:</strong> {creator.content_pillars.join(" · ")}
-            </p>
-            <p>
-              <strong>CTA:</strong> {creator.cta_style}
-            </p>
-            <p>
-              <strong>Atribución:</strong>{" "}
-              {Object.entries(creator.attribution_parameters)
-                .map(([key, value]) => `${key}=${value}`)
-                .join(" · ")}
-            </p>
-            <p>
-              <strong>Notas:</strong> {creator.compliance_notes.join(" · ")}
-            </p>
-            <details>
-              <summary>
-                Evidencia de embudo ({creator.funnel_evidence.linked_leads}{" "}
-                leads vinculados)
-              </summary>
-              <p>
-                {Object.entries(creator.funnel_evidence.stage_counts)
-                  .map(([stage, count]) => `${stage}: ${count}`)
-                  .join(" · ") || "Sin etapas observadas"}
-              </p>
-              <p>
-                Fuentes:{" "}
-                {creator.funnel_evidence.source_ids.join(", ") ||
-                  "Sin fuentes vinculadas"}
-              </p>
-              <small>{creator.funnel_evidence.interpretation}</small>
-            </details>
-          </article>
-        ))}
-      </section>
-
-      <section className="panel">
-        <h2>Fuentes sintéticas ({visibleSources.length}/10)</h2>
-        <p>
-          Prioridad descriptiva: no representa lift causal, ROI ni resultados
-          garantizados.
-        </p>
-        <label className="filter-row">
-          Riesgo
-          <select
-            value={risk}
-            onChange={(event) => setRisk(event.target.value)}
-          >
-            <option>Todos</option>
-            <option value="low">Bajo</option>
-            <option value="medium">Medio</option>
-            <option value="high">Alto</option>
-          </select>
-        </label>
-        {visibleSources.map((source) => (
-          <article className="evidence-card" key={source.business_id}>
-            <h3>
-              #{source.rank} · {source.business_id}{" "}
-              <span className="badge">{source.compliance_risk}</span>
-            </h3>
-            <p>{source.display_text}</p>
-            <p>
-              {source.source_type} · {source.channel} · {source.theme} ·{" "}
-              {source.source_date}
-            </p>
-            <p>
-              {source.provenance} · {source.risk_reason}
-            </p>
-            <p>
-              Leads vinculados: {source.evidence.linked_lead_count}; antigüedad:{" "}
-              {source.evidence.source_age_days ?? "no disponible"} días. Riesgo:{" "}
-              {source.evidence.compliance_risk}.
-            </p>
-            <ul>
-              {factors.map(([key, label]) => (
-                <li key={key}>
-                  {label}:{" "}
-                  {source.factors[key] == null
-                    ? "No disponible"
-                    : `${source.factors[key]} (aporte ${source.factor_contributions[key]})`}
-                </li>
-              ))}
-            </ul>
-            <p>
-              Puntaje: {source.priority_score ?? "No disponible"} ·{" "}
-              {source.script_selectable
-                ? "Elegible para borradores"
-                : "No elegible para aprobación de guion"}
-            </p>
-          </article>
-        ))}
-      </section>
-
-      <section className="panel">
-        <h2>Guiones y revisiones</h2>
-        <p>
-          Prioridad según la fuente vinculada. Los borradores son estáticos,
-          ficticios y requieren revisión humana. No hay acciones de publicación
-          o programación.
-        </p>
-        {prioritizedScripts.map((script) => {
-          const latest = script.versions[0];
-          if (!latest) return null;
-          return (
-            <article className="evidence-card" key={script.id}>
+    <div className="workspace-stack">
+      <nav className="content-shortcuts" aria-label="Explorar contenido">
+        <a href="#scripts">Guiones y revisiones →</a>
+        <a href="#sources">Fuentes y prioridad →</a>
+        <a href="#creators">Perfiles de creadores →</a>
+      </nav>
+      <div className="operation-grid content-grid">
+        <section className="panel" id="creators">
+          <h2>Perfiles ({visibleCreators.length}/5)</h2>
+          <label className="filter-row">
+            Plataforma
+            <select
+              value={platform}
+              onChange={(event) => setPlatform(event.target.value)}
+            >
+              <option>Todas</option>
+              {[...new Set(creators.flatMap((item) => item.platforms))]
+                .sort()
+                .map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+            </select>
+          </label>
+          {visibleCreators.map((creator) => (
+            <article className="evidence-card" key={creator.business_id}>
               <h3>
-                {script.business_id} · {script.title}
+                {creator.fictional_name}{" "}
+                <span className="badge">{creator.business_id}</span>
               </h3>
               <p>
-                Versión {latest.version} · Creador {latest.creator_id} · Fuente{" "}
-                {latest.source_id} · Prioridad de fuente #
-                {sources.find(
-                  (source) => source.business_id === latest.source_id,
-                )?.rank ?? "sin ranking"}
+                {creator.handle} · {creator.platforms.join(", ")}
               </p>
               <p>
-                <strong>Ajuste:</strong> {latest.fit_rationale}
+                <strong>Audiencia:</strong> {creator.audience_archetype}
               </p>
               <p>
-                {latest.word_count} palabras · duración estimada{" "}
-                {latest.estimated_duration_seconds} s · SHA-256{" "}
-                {latest.body_checksum}
+                <strong>Voz:</strong> {creator.voice}
               </p>
               <p>
-                Cumplimiento:{" "}
-                {latest.compliance_valid
-                  ? "válido"
-                  : latest.compliance_codes.join(", ")}{" "}
-                · Revisión: {latest.review_state}
+                <strong>Pilares:</strong> {creator.content_pillars.join(" · ")}
               </p>
-              <blockquote>{latest.body}</blockquote>
-              {latest.review?.reason && (
-                <p>Nota de revisión: {latest.review.reason}</p>
-              )}
-              {access.can_author && (
-                <ScriptVersionForm
-                  script={script}
-                  creators={creators}
-                  sources={sources}
-                  disabled={busy}
-                  onSubmit={(body) =>
-                    void send(`content/scripts/${script.id}/versions`, body)
-                  }
-                />
-              )}
-              {access.can_review &&
-                latest.review_state === "pending_review" && (
-                  <ScriptReviewForm
-                    versionId={latest.id}
+              <p>
+                <strong>CTA:</strong> {creator.cta_style}
+              </p>
+              <p>
+                <strong>Atribución:</strong>{" "}
+                {Object.entries(creator.attribution_parameters)
+                  .map(([key, value]) => `${key}=${value}`)
+                  .join(" · ")}
+              </p>
+              <p>
+                <strong>Notas:</strong> {creator.compliance_notes.join(" · ")}
+              </p>
+              <details>
+                <summary>
+                  Evidencia de embudo ({creator.funnel_evidence.linked_leads}{" "}
+                  leads vinculados)
+                </summary>
+                <p>
+                  {Object.entries(creator.funnel_evidence.stage_counts)
+                    .map(([stage, count]) => `${stage}: ${count}`)
+                    .join(" · ") || "Sin etapas observadas"}
+                </p>
+                <p>
+                  Fuentes:{" "}
+                  {creator.funnel_evidence.source_ids.join(", ") ||
+                    "Sin fuentes vinculadas"}
+                </p>
+                <small>{creator.funnel_evidence.interpretation}</small>
+              </details>
+            </article>
+          ))}
+        </section>
+
+        <section className="panel" id="sources">
+          <h2>Fuentes ({visibleSources.length}/10)</h2>
+          <p>
+            Prioridad descriptiva: no representa lift causal, ROI ni resultados
+            garantizados.
+          </p>
+          <label className="filter-row">
+            Riesgo
+            <select
+              value={risk}
+              onChange={(event) => setRisk(event.target.value)}
+            >
+              <option>Todos</option>
+              <option value="low">Bajo</option>
+              <option value="medium">Medio</option>
+              <option value="high">Alto</option>
+            </select>
+          </label>
+          {visibleSources.map((source) => (
+            <article className="evidence-card" key={source.business_id}>
+              <h3>
+                #{source.rank} · {source.business_id}{" "}
+                <span className="badge">{source.compliance_risk}</span>
+              </h3>
+              <p>{source.display_text}</p>
+              <p>
+                {source.source_type} · {source.channel} · {source.theme} ·{" "}
+                {source.source_date}
+              </p>
+              <p>
+                {source.provenance} · {source.risk_reason}
+              </p>
+              <p>
+                Leads vinculados: {source.evidence.linked_lead_count};
+                antigüedad: {source.evidence.source_age_days ?? "no disponible"}{" "}
+                días. Riesgo: {source.evidence.compliance_risk}.
+              </p>
+              <ul>
+                {factors.map(([key, label]) => (
+                  <li key={key}>
+                    {label}:{" "}
+                    {source.factors[key] == null
+                      ? "No disponible"
+                      : `${source.factors[key]} (aporte ${source.factor_contributions[key]})`}
+                  </li>
+                ))}
+              </ul>
+              <p>
+                Puntaje: {source.priority_score ?? "No disponible"} ·{" "}
+                {source.script_selectable
+                  ? "Elegible para borradores"
+                  : "No elegible para aprobación de guion"}
+              </p>
+            </article>
+          ))}
+        </section>
+
+        <section className="panel" id="scripts">
+          <h2>Guiones y revisiones</h2>
+          <p>
+            Prioridad según la fuente vinculada. Los borradores requieren
+            revisión humana. No hay acciones de publicación o programación.
+          </p>
+          {prioritizedScripts.map((script) => {
+            const latest = script.versions[0];
+            if (!latest) return null;
+            return (
+              <article className="evidence-card" key={script.id}>
+                <h3>
+                  {script.business_id} · {script.title}
+                </h3>
+                <p>
+                  Versión {latest.version} · Creador {latest.creator_id} ·
+                  Fuente {latest.source_id} · Prioridad de fuente #
+                  {sources.find(
+                    (source) => source.business_id === latest.source_id,
+                  )?.rank ?? "sin ranking"}
+                </p>
+                <p>
+                  <strong>Ajuste:</strong> {latest.fit_rationale}
+                </p>
+                <p>
+                  {latest.word_count} palabras · duración estimada{" "}
+                  {latest.estimated_duration_seconds} s · SHA-256{" "}
+                  {latest.body_checksum}
+                </p>
+                <p>
+                  Cumplimiento:{" "}
+                  {latest.compliance_valid
+                    ? "válido"
+                    : latest.compliance_codes.join(", ")}{" "}
+                  · Revisión: {latest.review_state}
+                </p>
+                <blockquote>{latest.body}</blockquote>
+                {latest.review?.reason && (
+                  <p>Nota de revisión: {latest.review.reason}</p>
+                )}
+                {access.can_author && (
+                  <ScriptVersionForm
+                    script={script}
+                    creators={creators}
+                    sources={sources}
                     disabled={busy}
                     onSubmit={(body) =>
-                      void send(
-                        `content/script-versions/${latest.id}/review`,
-                        body,
-                      )
+                      void send(`content/scripts/${script.id}/versions`, body)
                     }
                   />
                 )}
-            </article>
-          );
-        })}
-      </section>
-      {message && (
-        <p role="status" aria-live="polite">
-          {message}
-        </p>
-      )}
+                {access.can_review &&
+                  latest.review_state === "pending_review" && (
+                    <ScriptReviewForm
+                      versionId={latest.id}
+                      disabled={busy}
+                      onSubmit={(body) =>
+                        void send(
+                          `content/script-versions/${latest.id}/review`,
+                          body,
+                        )
+                      }
+                    />
+                  )}
+              </article>
+            );
+          })}
+        </section>
+        {message && (
+          <p role="status" aria-live="polite">
+            {message}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

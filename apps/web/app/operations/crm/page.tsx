@@ -7,11 +7,11 @@ export default async function CrmPage() {
   const { data } = await supabase.auth.getSession();
   return (
     <main className="operations-shell">
-      <div className="eyebrow">Operaciones · WI-005</div>
+      <div className="eyebrow">Automatización comercial</div>
       <h1>CRM y transferencias</h1>
       <p>
-        Las etapas comerciales, las escalaciones y las entregas se registran por
-        separado.
+        Una disposición mueve la etapa y conserva su historial. Los mensajes,
+        escalaciones y entregas tienen controles propios.
       </p>
       {data.session ? (
         <CrmOperations />

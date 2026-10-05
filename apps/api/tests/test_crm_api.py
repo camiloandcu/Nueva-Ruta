@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from nueva_ruta_api import auth, crm_api, main
 from nueva_ruta_api.auth import Principal, Role
 from nueva_ruta_api.config import Settings
+from nueva_ruta_api.crm_store import CrmStore
 
 TEST_USER = UUID("00000000-0000-0000-0000-000000000001")
 TEST_SETTINGS = Settings("http://supabase.invalid", "anon", "service")
@@ -83,3 +84,20 @@ def test_delivery_processing_passes_request_correlation_to_simulator_boundary(
 
     assert response.status_code == 200
     assert response.json() == {"correlation_id": "wi005-flow-001"}
+
+
+def test_operator_can_read_disposition_audit_trail(monkeypatch) -> None:
+    async def rows(self, table: str, **kwargs: object):
+        del self
+        assert table == "crm_disposition_events"
+        assert kwargs == {"order": "occurred_at.desc"}
+        return [{"disposition": "Info Sent", "resulting_stage": "info_sent"}]
+
+    monkeypatch.setattr(CrmStore, "rows", rows)
+    with client_for(Role.OPERATOR) as client:
+        response = client.get("/v1/crm/dispositions")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"disposition": "Info Sent", "resulting_stage": "info_sent"}
+    ]

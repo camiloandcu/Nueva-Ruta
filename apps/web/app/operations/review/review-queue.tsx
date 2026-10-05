@@ -1,89 +1,416 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 type Lead = {
   source_event_id: string;
   external_event_id: string;
+  decision_id: string;
+  received_at: string;
+  channel: string;
   redacted_body: string;
   redaction_types: string[];
   decision: string;
   reason_code: string;
+  correlation_id: string;
 };
 type Draft = {
   id: string;
+  decision_id: string;
   content: string;
-  content_checksum: string;
-  created_at: string;
+  status: string;
+  approved_content: string | null;
 };
+type Result = {
+  lead_id: string;
+  decision: string;
+  reason_code: string;
+  correlation_id: string;
+};
+
+const examples = [
+  {
+    id: "complete",
+    label: "Consulta completa",
+    channel: "ctwa",
+    message:
+      "Tengo aproximadamente $12,000 en tarjetas y vivo en TX. ¿Puedo hablar con un consejero?",
+  },
+  {
+    id: "incomplete",
+    label: "Faltan datos",
+    channel: "organic",
+    message: "Necesito orientación sobre mis tarjetas, ¿qué datos necesitan?",
+  },
+  {
+    id: "risk",
+    label: "Revisión humana",
+    channel: "organic",
+    message:
+      "Recibí una demanda y quiero hablar con una persona antes de continuar.",
+  },
+  {
+    id: "optout",
+    label: "Solicitud de baja",
+    channel: "organic",
+    message: "No me escriban más, por favor.",
+  },
+] as const;
+
+const decisions: Record<string, string> = {
+  respond: "Preparar respuesta",
+  escalate_human: "Escalar a una persona",
+  ignore: "No continuar contacto",
+};
+const reasons: Record<string, string> = {
+  safe_inquiry: "Consulta apta para revisión",
+  legal_or_risk: "Lenguaje legal o de riesgo",
+  requested_handoff: "Solicitó atención humana",
+  sensitive_data: "Información sensible",
+  explicit_opt_out: "Retiró consentimiento",
+  synthetic_sla_fixture: "Revisión de SLA",
+};
+
+function dateText(value: string) {
+  return new Date(value).toLocaleString("es-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+function detail(value: unknown) {
+  return typeof value === "string"
+    ? value
+    : "Revisa los datos o vuelve a intentarlo.";
+}
 
 export default function ReviewQueue() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [exampleId, setExampleId] = useState<string>("complete");
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [result, setResult] = useState<Result | null>(null);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   const load = useCallback(async () => {
     const [leadResponse, draftResponse] = await Promise.all([
       fetch("/api/operations/operational/redacted-leads", {
         cache: "no-store",
       }),
-      fetch("/api/operations/drafts/pending", { cache: "no-store" }),
+      fetch("/api/operations/drafts", { cache: "no-store" }),
     ]);
-    if (leadResponse.ok) setLeads(await leadResponse.json());
-    if (draftResponse.ok) setDrafts(await draftResponse.json());
+    if (!leadResponse.ok || !draftResponse.ok) {
+      setError(
+        "No fue posible cargar las entradas. Revisa tu sesión y permisos.",
+      );
+      setLoading(false);
+      return;
+    }
+    const nextLeads = (await leadResponse.json()) as Lead[];
+    setLeads(nextLeads);
+    setDrafts((await draftResponse.json()) as Draft[]);
+    const requested = new URLSearchParams(window.location.search).get("lead");
+    setSelectedId(
+      (current) =>
+        current ?? requested ?? nextLeads[0]?.source_event_id ?? null,
+    );
+    setError("");
+    setLoading(false);
   }, []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  const selected = leads.find((lead) => lead.source_event_id === selectedId);
+  const selectedDrafts = drafts.filter(
+    (draft) => draft.decision_id === selected?.decision_id,
+  );
+  const example = examples.find((item) => item.id === exampleId) ?? examples[0];
+
+  async function ingest() {
+    setBusy(true);
+    setMessage("");
+    const id = crypto.randomUUID();
+    try {
+      const response = await fetch("/api/operations/ingestion/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source_event_id: "web-" + id,
+          inbound_at: new Date().toISOString(),
+          channel: example.channel,
+          source_detail:
+            example.channel === "ctwa"
+              ? "Anuncio de creador"
+              : "Entrada directa",
+          creator_business_id: example.channel === "ctwa" ? "CR-001" : null,
+          message: example.message,
+          fictional_phone: "+15550185",
+          consent: {
+            status: "granted",
+            source: "inbound",
+            conversation_window_open: true,
+          },
+          synthetic: true,
+          correlation_id: "web-" + id,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(detail(payload.detail));
+      const processed = payload as Result;
+      setResult(processed);
+      setSelectedId(processed.lead_id);
+      setMessage(
+        "Entrada registrada y clasificada. Revisa la decisión y su siguiente acción.",
+      );
+      await load();
+    } catch (caught) {
+      setMessage(
+        caught instanceof Error ? caught.message : "No se procesó la entrada.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function approve(draft: Draft) {
-    const response = await fetch(`/api/operations/drafts/${draft.id}/approve`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: draft.content,
-        correlation_id: `web-${draft.id}`,
-      }),
-    });
-    const result = await response.json();
-    setMessage(
-      response.ok
-        ? "Aprobado y auditado; no entregado."
-        : `Bloqueado: ${result.detail}`,
-    );
-    await load();
+    setBusy(true);
+    try {
+      const response = await fetch(
+        "/api/operations/drafts/" + draft.id + "/approve",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: edits[draft.id] ?? draft.content,
+            correlation_id: "review-" + crypto.randomUUID(),
+          }),
+        },
+      );
+      const payload = await response.json();
+      setMessage(
+        response.ok
+          ? "Borrador aprobado y auditado. No se envió un mensaje."
+          : "Aprobación bloqueada: " + detail(payload.detail),
+      );
+      await load();
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <div className="operation-grid">
-      <section className="panel">
-        <h2>Leads redactados</h2>
-        {leads.map((lead) => (
-          <article key={lead.source_event_id} className="evidence-card">
-            <strong>{lead.external_event_id}</strong>
-            <p>{lead.redacted_body}</p>
-            <span className={`badge badge-${lead.decision}`}>
-              {lead.reason_code}
-            </span>
-          </article>
-        ))}
+    <div className="workspace-stack">
+      <section className="panel intake-panel">
+        <div>
+          <span className="section-kicker">01 · Entrada y decisión</span>
+          <h2>Procesar un mensaje nuevo</h2>
+          <p>
+            Elige un caso y observa cómo queda registrado, clasificado y
+            asignado.
+          </p>
+        </div>
+        <div className="intake-controls">
+          <label>
+            Caso
+            <select
+              value={exampleId}
+              onChange={(event) => setExampleId(event.target.value)}
+            >
+              {examples.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="message-preview" aria-label="Mensaje entrante">
+            “{example.message}”
+          </div>
+          <button disabled={busy} onClick={() => void ingest()}>
+            {busy ? "Procesando…" : "Ingresar mensaje"}
+          </button>
+        </div>
       </section>
-      <section className="panel">
-        <h2>Borradores pendientes</h2>
-        {drafts.map((draft) => (
-          <article key={draft.id} className="evidence-card">
-            <textarea
-              aria-label="Contenido para aprobación"
-              defaultValue={draft.content}
-              readOnly
-            />
-            <button onClick={() => void approve(draft)}>
-              Aprobar sin entregar
-            </button>
-          </article>
-        ))}
-        <p aria-live="polite">{message}</p>
-      </section>
+      {result && (
+        <section className="result-banner" role="status">
+          <strong>{decisions[result.decision] ?? result.decision}</strong>
+          <span>{reasons[result.reason_code] ?? result.reason_code}</span>
+          <small>
+            Lead {result.lead_id} · correlación {result.correlation_id}
+          </small>
+        </section>
+      )}
+      {message && (
+        <p className="inline-message" role="status">
+          {message}
+        </p>
+      )}
+      {error && (
+        <p className="inline-message error-panel" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="review-layout">
+        <section className="panel inbox-panel">
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">02 · Evidencia</span>
+              <h2>Entradas recientes</h2>
+            </div>
+            <span className="count-pill">{leads.length}</span>
+          </div>
+          {loading && <p>Cargando entradas…</p>}
+          {!loading && leads.length === 0 && (
+            <p>Procesa un mensaje para abrir el primer caso.</p>
+          )}
+          <div className="inbox-list">
+            {leads.map((lead) => (
+              <button
+                key={lead.source_event_id}
+                className={
+                  "inbox-item" +
+                  (selectedId === lead.source_event_id ? " is-selected" : "")
+                }
+                onClick={() => setSelectedId(lead.source_event_id)}
+                aria-pressed={selectedId === lead.source_event_id}
+              >
+                <span className="inbox-item-top">
+                  <strong>{lead.external_event_id}</strong>
+                  <small>{dateText(lead.received_at)}</small>
+                </span>
+                <span>{lead.redacted_body}</span>
+                <span className={"badge badge-" + lead.decision}>
+                  {decisions[lead.decision] ?? lead.decision}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+        <section className="panel case-panel">
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">03 · Acción humana</span>
+              <h2>Detalle del caso</h2>
+            </div>
+            {selected && (
+              <span className={"badge badge-" + selected.decision}>
+                {decisions[selected.decision] ?? selected.decision}
+              </span>
+            )}
+          </div>
+          {!selected ? (
+            <p>Selecciona una entrada para revisar su evidencia.</p>
+          ) : (
+            <>
+              <p className="case-message">“{selected.redacted_body}”</p>
+              <dl className="evidence-grid">
+                <div>
+                  <dt>Recibido</dt>
+                  <dd>{dateText(selected.received_at)}</dd>
+                </div>
+                <div>
+                  <dt>Canal</dt>
+                  <dd>
+                    {selected.channel === "ctwa" ? "Anuncio CTWA" : "Orgánico"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Lead ID</dt>
+                  <dd>
+                    <code>{selected.source_event_id}</code>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Decisión</dt>
+                  <dd>{decisions[selected.decision] ?? selected.decision}</dd>
+                </div>
+                <div>
+                  <dt>Razón</dt>
+                  <dd>
+                    {reasons[selected.reason_code] ?? selected.reason_code}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Correlación</dt>
+                  <dd>
+                    <code>{selected.correlation_id}</code>
+                  </dd>
+                </div>
+              </dl>
+              {selected.redaction_types.length > 0 && (
+                <p className="inline-message">
+                  Contenido sensible redactado:{" "}
+                  {selected.redaction_types.join(", ")}
+                </p>
+              )}
+              {selectedDrafts.length > 0 ? (
+                selectedDrafts.map((draft) => (
+                  <div key={draft.id} className="draft-editor">
+                    <div className="section-heading">
+                      <h3>Borrador de respuesta</h3>
+                      <span className="badge">
+                        {draft.status === "pending" ? "Pendiente" : "Aprobado"}
+                      </span>
+                    </div>
+                    <label>
+                      Texto para revisión
+                      <textarea
+                        value={
+                          edits[draft.id] ??
+                          draft.approved_content ??
+                          draft.content
+                        }
+                        readOnly={draft.status !== "pending"}
+                        onChange={(event) =>
+                          setEdits((current) => ({
+                            ...current,
+                            [draft.id]: event.target.value,
+                          }))
+                        }
+                        rows={5}
+                      />
+                    </label>
+                    {draft.status === "pending" && (
+                      <button
+                        disabled={busy}
+                        onClick={() => void approve(draft)}
+                      >
+                        Aprobar sin entregar
+                      </button>
+                    )}
+                    <small>
+                      La aprobación registra evidencia; la entrega de contenido
+                      sustantivo requiere otra acción.
+                    </small>
+                  </div>
+                ))
+              ) : selected.decision === "escalate_human" ? (
+                <div className="next-action">
+                  <strong>Requiere atención humana</strong>
+                  <p>La tarea, su prioridad y vencimiento están en CRM.</p>
+                  <Link href="/operations/crm#escalations">
+                    Ver escalaciones →
+                  </Link>
+                </div>
+              ) : (
+                <p>Esta decisión no genera borrador de respuesta.</p>
+              )}
+              <div className="related-links">
+                <Link href="/rules">Ver reglas →</Link>
+                <Link href="/operations/crm">Abrir CRM →</Link>
+                <Link href="/operations/ai">Ver ejecuciones →</Link>
+              </div>
+            </>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
