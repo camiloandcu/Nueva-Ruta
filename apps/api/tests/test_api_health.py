@@ -84,4 +84,5 @@ def test_invalid_correlation_header_is_replaced(caplog: pytest.LogCaptureFixture
 
     assert response.status_code == 200
     assert response.headers["X-Correlation-ID"] != "bad\nvalue"
-    assert "bad" not in caplog.text
+    assert f'"correlation_id":"{response.headers["X-Correlation-ID"]}"' in caplog.text
+    assert "bad\\nvalue" not in caplog.text

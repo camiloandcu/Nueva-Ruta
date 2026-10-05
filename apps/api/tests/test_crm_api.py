@@ -101,6 +101,30 @@ def test_operator_can_read_disposition_audit_trail(monkeypatch) -> None:
     assert response.json() == [{"disposition": "Info Sent", "resulting_stage": "info_sent"}]
 
 
+def test_global_queues_use_case_labeled_read_models(monkeypatch) -> None:
+    expected = {
+        "escalations": "operational_escalations",
+        "recovery": "operational_crm_recovery",
+        "follow-up-drafts": "operational_crm_follow_up_drafts",
+        "deliveries": "operational_partner_deliveries",
+        "delivery-attempts": "operational_partner_delivery_attempts",
+    }
+
+    async def rows(self, table: str, **kwargs: object):
+        del self, kwargs
+        assert table in expected.values()
+        return [{"business_id": "LEAD-054", "crm_lead_id": str(TEST_USER)}]
+
+    monkeypatch.setattr(CrmStore, "rows", rows)
+    with client_for(Role.ANALYST) as client:
+        assert client.get("/v1/crm/recovery").status_code == 403
+    with client_for(Role.OPERATOR) as client:
+        for path in expected:
+            response = client.get(f"/v1/crm/{path}")
+            assert response.status_code == 200
+            assert response.json()[0]["business_id"] == "LEAD-054"
+
+
 def test_message_evidence_is_case_scoped_and_operator_only(monkeypatch) -> None:
     lead_id = "00000000-0000-0000-0000-000000000002"
 

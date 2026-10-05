@@ -347,24 +347,28 @@ async def escalation_action(
 
 @router.get("/deliveries")
 async def deliveries(_: Operator, settings: Config) -> list[dict[str, Any]]:
-    return await CrmStore(settings).rows("outbox_events", order="created_at.desc")
+    return await CrmStore(settings).rows("operational_partner_deliveries", order="created_at.desc")
 
 
 @router.get("/delivery-attempts")
 async def delivery_attempts(_: Operator, settings: Config) -> list[dict[str, Any]]:
-    return await CrmStore(settings).rows("outbox_delivery_attempts", order="completed_at.desc")
+    return await CrmStore(settings).rows(
+        "operational_partner_delivery_attempts", order="completed_at.desc"
+    )
 
 
 @router.get("/recovery")
 async def recovery_items(_: Operator, settings: Config) -> list[dict[str, Any]]:
     return await CrmStore(settings).rows(
-        "crm_recovery_items", order="created_at.desc", filters={"status": "eq.open"}
+        "operational_crm_recovery", order="created_at.desc", filters={"status": "eq.open"}
     )
 
 
 @router.get("/follow-up-drafts")
 async def follow_up_drafts(_: Operator, settings: Config) -> list[dict[str, Any]]:
-    return await CrmStore(settings).rows("crm_follow_up_drafts", order="created_at.desc")
+    return await CrmStore(settings).rows(
+        "operational_crm_follow_up_drafts", order="created_at.desc"
+    )
 
 
 @router.post("/follow-up-drafts/{draft_id}/approve")

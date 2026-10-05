@@ -8,13 +8,22 @@ type Access = { role: "operator" | "supervisor" | "analyst" };
 const links = [
   {
     href: "/operations/review",
-    label: "Entrada",
+    label: "Bandeja",
     roles: ["operator", "supervisor"],
   },
-  { href: "/operations/crm", label: "CRM", roles: ["operator", "supervisor"] },
+  {
+    href: "/operations/crm",
+    label: "Casos",
+    roles: ["operator", "supervisor"],
+  },
+  {
+    href: "/operations/crm#escalations",
+    label: "Operación",
+    roles: ["operator", "supervisor"],
+  },
   {
     href: "/operations/reports",
-    label: "Datos",
+    label: "Resultados",
     roles: ["operator", "supervisor", "analyst"],
   },
   {
@@ -44,7 +53,7 @@ export default function AppNavigation() {
   }, []);
   if (!loaded || !access) return null;
   return (
-    <nav className="site-nav" aria-label="Áreas de trabajo">
+    <nav className="site-nav" aria-label="Navegación principal">
       {links
         .filter((link) =>
           (link.roles as readonly string[]).includes(access.role),

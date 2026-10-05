@@ -7,4 +7,4 @@
 
 Each item becomes a separately reviewable OpenSpec proposal after the full planning set is approved. Do not interpret this map as permission to deploy or mutate hosted demo data.
 
-Progress: item 1 is implemented and locally verified; see [verification](../../implementation/10_CASE_IDENTITY_NAVIGATION_VERIFICATION.md). Hosted rollout and the issue/PR workflow are pending.
+Progress: items 1 and 2 are implemented, locally verified and deployed to the temporary demo; see [case identity](../../implementation/10_CASE_IDENTITY_NAVIGATION_VERIFICATION.md) and [draft/delivery](../../implementation/11_CRM_DRAFT_DELIVERY_VERIFICATION.md). Both changes are archived and linked to issues #21 and #22 on PR #20. Item 3 is locally verified, [documented](../../implementation/12_WORKSPACE_CASE_FLOW_VERIFICATION.md), and archived with synced specifications; issue #23 tracks it on PR #20. Hosted rollout is recorded in its verification report. Item 4 remains pending.

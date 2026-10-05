@@ -158,10 +158,18 @@ test("WI-007 reports use the authenticated FastAPI proxy and preserve attributio
     new URL("../app/operations/reports/reports-dashboard.tsx", import.meta.url),
     "utf8",
   );
+  const trace = readFileSync(
+    new URL(
+      "../app/operations/reports/enrollment-trace-item.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
   assert.match(dashboard, /\/api\/operations\/reports\/overview/);
-  assert.match(dashboard, /\/api\/operations\/reports\/enrollments/);
+  assert.match(dashboard, /EnrollmentTraceItem/);
+  assert.match(trace, /\/api\/operations\/reports\/enrollments/);
   assert.match(dashboard, /Denominador/);
-  assert.match(dashboard, /Sin atribución/);
+  assert.match(trace, /Sin atribución/);
   assert.match(dashboard, /no calcula dinero/i);
   assert.match(dashboard, /stalled_pagination/);
   assert.match(dashboard, /Siguiente/);

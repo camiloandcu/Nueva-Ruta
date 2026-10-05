@@ -57,7 +57,7 @@ test("approved intake draft appears in CRM and delivery evidence advances only i
   );
   await expect(
     page.locator(".crm-workspace .evidence-card").first(),
-  ).toContainText("prequalified");
+  ).toContainText("Precalificado");
 
   await evidence
     .getByRole("button", { name: "Registrar entrega simulada" })
@@ -99,7 +99,7 @@ test("approved intake draft appears in CRM and delivery evidence advances only i
   ).toBeFalsy();
 
   await page.getByRole("button", { name: "Registrar disposición" }).click();
-  await expect(page.getByRole("status")).toContainText("info_sent");
+  await expect(page.getByRole("status")).toContainText("Información enviada");
   await expect(page.locator(".audit-event small").first()).toContainText(
     "Entrega simulada registrada",
   );

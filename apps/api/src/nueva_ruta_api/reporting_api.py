@@ -9,13 +9,37 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from nueva_ruta_api.auth import Principal, Role, get_settings, require_roles
 from nueva_ruta_api.config import Settings
 from nueva_ruta_api.ingestion_store import IngestionStore
-from nueva_ruta_api.reporting import build_operational_report
+from nueva_ruta_api.reporting import available_filter_options, build_operational_report
 
 router = APIRouter(prefix="/v1/reports", tags=["operational reporting"])
 Viewer = Annotated[Principal, Depends(require_roles(Role.OPERATOR, Role.SUPERVISOR, Role.ANALYST))]
 Config = Annotated[Settings, Depends(get_settings)]
 ALLOWED_STATES = {"CA", "FL", "TX"}
 ALLOWED_CHANNELS = {"ctwa", "organic"}
+
+
+@router.get("/filter-options")
+async def filter_options(principal: Viewer, settings: Config) -> dict[str, list[str] | bool]:
+    try:
+        facts = await IngestionStore(settings).rpc(
+            "operational_reporting_facts", {"p_actor_id": str(principal.id)}
+        )
+        return {
+            **available_filter_options(facts),
+            "can_open_crm": principal.role in {Role.OPERATOR, Role.SUPERVISOR},
+        }
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == status.HTTP_403_FORBIDDEN:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "Role is not authorized for reports"
+            ) from exc
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "Reporting facts unavailable"
+        ) from exc
+    except (httpx.HTTPError, TypeError, ValueError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "Reporting facts unavailable"
+        ) from exc
 
 
 def _validate_filters(

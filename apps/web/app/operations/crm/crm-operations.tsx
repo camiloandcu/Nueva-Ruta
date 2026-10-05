@@ -7,6 +7,14 @@ import {
   CrmMessageEvidence,
   type MessageEvidence,
 } from "./crm-message-evidence";
+import {
+  channelLabel,
+  dispositionLabel,
+  nextCaseAction,
+  reasonLabel,
+  stageLabel,
+  statusLabel,
+} from "../../../lib/operational-labels";
 
 type Lead = {
   id: string;
@@ -16,6 +24,8 @@ type Lead = {
   fictional_phone: string | null;
   opted_out: boolean | null;
   redacted_body: string | null;
+  consent_status: string;
+  source_channel: string | null;
 };
 type Escalation = {
   id: string;
@@ -26,6 +36,8 @@ type Escalation = {
   due_at: string;
   sla_breached: boolean;
   redacted_summary: string;
+  crm_lead_id: string | null;
+  business_id: string | null;
 };
 type TeamMember = { id: string; display_name: string; role: string };
 type Delivery = {
@@ -33,6 +45,8 @@ type Delivery = {
   status: string;
   attempt_count: number;
   last_error_category: string | null;
+  crm_lead_id: string;
+  business_id: string;
 };
 type Attempt = {
   id: number;
@@ -40,12 +54,16 @@ type Attempt = {
   outcome: string;
   error_category: string | null;
   completed_at: string;
+  crm_lead_id: string;
+  business_id: string;
 };
 type Recovery = {
   id: string;
   reason_code: string;
   details: string;
   created_at: string;
+  crm_lead_id: string;
+  business_id: string;
 };
 type FollowupDraft = {
   id: string;
@@ -53,6 +71,7 @@ type FollowupDraft = {
   content: string;
   status: string;
   content_checksum: string;
+  business_id: string;
 };
 type DispositionEvent = {
   id: string;
@@ -86,6 +105,7 @@ export default function CrmOperations() {
   const [requestedLeadId, setRequestedLeadId] = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState("");
   const [message, setMessage] = useState("");
+  const [messageScope, setMessageScope] = useState<"case" | "queue">("case");
   const [mode, setMode] = useState("success");
   const [refreshKey, setRefreshKey] = useState(0);
   const [messageEvidence, setMessageEvidence] = useState<MessageEvidence[]>([]);
@@ -94,40 +114,61 @@ export default function CrmOperations() {
   const [disposition, setDisposition] = useState("No Answer");
   const [dispositionReason, setDispositionReason] = useState("");
   const [manualReference, setManualReference] = useState("");
+  const [sectionErrors, setSectionErrors] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [sectionsLoaded, setSectionsLoaded] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [evidenceError, setEvidenceError] = useState(false);
+
+  const loadSection = useCallback(async (path: string) => {
+    try {
+      const response = await fetch(`/api/operations/crm/${path}`, {
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(path);
+      const loaded = await response.json();
+      setSectionErrors((current) => ({ ...current, [path]: false }));
+      setSectionsLoaded((current) => ({ ...current, [path]: true }));
+      if (path === "leads") {
+        const typed = loaded as Lead[];
+        setLeads(typed);
+        const requested = new URLSearchParams(window.location.search).get(
+          "lead",
+        );
+        setRequestedLeadId(requested);
+        setSelectedLeadId(
+          (current) => current || requested || typed[0]?.id || "",
+        );
+      }
+      if (path === "escalations") setEscalations(loaded);
+      if (path === "deliveries") setDeliveries(loaded);
+      if (path === "recovery") setRecovery(loaded);
+      if (path === "delivery-attempts") setAttempts(loaded);
+      if (path === "follow-up-drafts") setFollowupDrafts(loaded);
+      if (path === "team") setTeam(loaded);
+      if (path === "dispositions") setDispositions(loaded);
+    } catch {
+      setSectionErrors((current) => ({ ...current, [path]: true }));
+      setSectionsLoaded((current) => ({ ...current, [path]: true }));
+    }
+  }, []);
 
   const load = useCallback(async () => {
-    const endpoints = [
-      "leads",
-      "escalations",
-      "deliveries",
-      "recovery",
-      "delivery-attempts",
-      "follow-up-drafts",
-      "team",
-      "dispositions",
-    ];
-    const responses = await Promise.all(
-      endpoints.map((path) =>
-        fetch(`/api/operations/crm/${path}`, { cache: "no-store" }),
-      ),
+    await Promise.all(
+      [
+        "leads",
+        "escalations",
+        "deliveries",
+        "recovery",
+        "delivery-attempts",
+        "follow-up-drafts",
+        "team",
+        "dispositions",
+      ].map(loadSection),
     );
-    if (responses[0].ok) {
-      const loaded = (await responses[0].json()) as Lead[];
-      setLeads(loaded);
-      const requested = new URLSearchParams(window.location.search).get("lead");
-      setRequestedLeadId(requested);
-      setSelectedLeadId(
-        (current) => current || requested || loaded[0]?.id || "",
-      );
-    }
-    if (responses[1].ok) setEscalations(await responses[1].json());
-    if (responses[2].ok) setDeliveries(await responses[2].json());
-    if (responses[3].ok) setRecovery(await responses[3].json());
-    if (responses[4].ok) setAttempts(await responses[4].json());
-    if (responses[5].ok) setFollowupDrafts(await responses[5].json());
-    if (responses[6].ok) setTeam(await responses[6].json());
-    if (responses[7].ok) setDispositions(await responses[7].json());
-  }, []);
+  }, [loadSection]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
@@ -135,10 +176,27 @@ export default function CrmOperations() {
   }, [load, refreshKey]);
 
   useEffect(() => {
+    const followUrl = () => {
+      const requested = new URLSearchParams(window.location.search).get("lead");
+      setRequestedLeadId(requested);
+      setSelectedLeadId(requested ?? leads[0]?.id ?? "");
+      setMessageEvidence([]);
+      setSelectedDeliveryId("");
+      setDisposition("No Answer");
+      setDispositionReason("");
+      setManualReference("");
+      setMessage("");
+    };
+    window.addEventListener("popstate", followUrl);
+    return () => window.removeEventListener("popstate", followUrl);
+  }, [leads]);
+
+  useEffect(() => {
     if (!selectedLeadId) return;
     let active = true;
     const timer = window.setTimeout(() => {
       setEvidenceLoading(true);
+      setEvidenceError(false);
       void fetch(
         `/api/operations/crm/leads/${selectedLeadId}/message-evidence`,
         {
@@ -159,10 +217,7 @@ export default function CrmOperations() {
           );
         })
         .catch(() => {
-          if (active)
-            setMessage(
-              "No se pudo cargar la evidencia de mensajes de este caso.",
-            );
+          if (active) setEvidenceError(true);
         })
         .finally(() => {
           if (active) setEvidenceLoading(false);
@@ -184,8 +239,46 @@ export default function CrmOperations() {
   const selectedHistory = dispositions.filter(
     (event) => event.crm_lead_id === selectedLeadId,
   );
+  const retrySection = (path: string) =>
+    sectionErrors[path] && (
+      <p role="alert">
+        No se pudo cargar esta sección.{" "}
+        <button type="button" onClick={() => void loadSection(path)}>
+          Reintentar
+        </button>
+      </p>
+    );
+  const loadingSection = (path: string) =>
+    !sectionsLoaded[path] && <p>Cargando sección…</p>;
+  function selectLead(id: string) {
+    setSelectedLeadId(id);
+    setRequestedLeadId(id);
+    setMessageEvidence([]);
+    setSelectedDeliveryId("");
+    setDisposition("No Answer");
+    setDispositionReason("");
+    setManualReference("");
+    setMessage("");
+  }
+  const caseLink = (businessId: string | null, id: string | null) =>
+    id && businessId ? (
+      <Link
+        className="case-record-link"
+        href={`/operations/crm?lead=${id}`}
+        onClick={() => selectLead(id)}
+      >
+        {businessId} · Abrir caso
+      </Link>
+    ) : (
+      <span className="case-record-link">Sin caso CRM vinculado</span>
+    );
 
   async function command(path: string, body: unknown, method = "POST") {
+    setMessageScope(
+      path.startsWith("leads/") || path === "transfers/approve"
+        ? "case"
+        : "queue",
+    );
     try {
       const response = await fetch(`/api/operations/crm/${path}`, {
         method,
@@ -196,12 +289,12 @@ export default function CrmOperations() {
       setMessage(
         response.ok
           ? result.lifecycle_state
-            ? `Estado de la escalación actualizado: ${result.lifecycle_state}.`
+            ? `Estado de la escalación actualizado: ${statusLabel(result.lifecycle_state)}.`
             : result.prior_stage && result.commercial_stage
               ? "Disposición registrada: " +
-                result.prior_stage +
+                stageLabel(result.prior_stage) +
                 " → " +
-                result.commercial_stage
+                stageLabel(result.commercial_stage)
               : "Acción registrada. La evidencia se actualizó."
           : "No se aplicó: " +
               (typeof result.detail === "string"
@@ -221,6 +314,7 @@ export default function CrmOperations() {
   async function submitDisposition(form: FormData, lead: Lead) {
     const disposition = String(form.get("disposition"));
     if (disposition === "Call Back" && !String(form.get("callback_at"))) {
+      setMessageScope("case");
       setMessage("Selecciona una fecha futura para la devolución de llamada.");
       return;
     }
@@ -238,6 +332,7 @@ export default function CrmOperations() {
       if (enteredReference) body.external_action_reference = enteredReference;
       else if (selectedDeliveryId) body.delivery_event_id = selectedDeliveryId;
       else {
+        setMessageScope("case");
         setMessage(
           "Registra una entrega simulada o documenta la acción manual antes de marcar Info Sent.",
         );
@@ -264,10 +359,10 @@ export default function CrmOperations() {
             <span className="section-kicker">01 · Elegir caso</span>
             <h2>Operación comercial</h2>
           </div>
-          <span className="count-pill">{leads.length} leads</span>
+          <span className="count-pill">{leads.length} casos</span>
         </div>
         <p>
-          Selecciona un lead para ver su etapa, registrar una disposición y
+          Selecciona un caso para ver su etapa, registrar una disposición y
           revisar la evidencia posterior.
         </p>
         <div className="filter-row">
@@ -281,23 +376,18 @@ export default function CrmOperations() {
               {[...new Set(leads.map((lead) => lead.commercial_stage))].map(
                 (stage) => (
                   <option key={stage} value={stage}>
-                    {stage}
+                    {stageLabel(stage)}
                   </option>
                 ),
               )}
             </select>
           </label>
           <label>
-            Lead
+            Caso
             <select
               value={selectedLeadId}
               onChange={(event) => {
-                setSelectedLeadId(event.target.value);
-                setMessageEvidence([]);
-                setSelectedDeliveryId("");
-                setDisposition("No Answer");
-                setDispositionReason("");
-                setManualReference("");
+                selectLead(event.target.value);
                 window.history.replaceState(
                   null,
                   "",
@@ -307,25 +397,43 @@ export default function CrmOperations() {
             >
               {filteredLeads.map((lead) => (
                 <option key={lead.id} value={lead.id}>
-                  {lead.business_id} · {lead.commercial_stage}
+                  {lead.business_id} · {stageLabel(lead.commercial_stage)}
                 </option>
               ))}
             </select>
           </label>
         </div>
-        <p className="inline-message" role="status" aria-live="polite">
-          {message}
-        </p>
+        {retrySection("leads")}
+        {loadingSection("leads")}
       </section>
       <div className="operation-grid crm-workspace">
         <section className="panel">
           <span className="section-kicker">02 · Disposición</span>
-          <h2>Lead seleccionado</h2>
+          <h2>Caso seleccionado</h2>
+          {messageScope === "case" && message && (
+            <p className="inline-message" role="status" aria-live="polite">
+              {message}
+            </p>
+          )}
           {selectedLead &&
             [selectedLead].map((lead) => (
               <article key={lead.id} className="evidence-card">
                 <strong>{lead.business_id}</strong>
-                <span className="badge">{lead.commercial_stage}</span>
+                <span className="badge">
+                  {stageLabel(lead.commercial_stage)}
+                </span>
+                <p>
+                  Origen: {channelLabel(lead.source_channel)} · Consentimiento:{" "}
+                  {statusLabel(lead.consent_status)}
+                </p>
+                <p className="case-next-action">
+                  <strong>Siguiente paso:</strong>{" "}
+                  {nextCaseAction(
+                    lead.commercial_stage,
+                    Boolean(lead.opted_out),
+                    messageEvidence.some((item) => !item.delivery_event_id),
+                  )}
+                </p>
                 {lead.source_event_id && (
                   <Link
                     href={`/operations/review?lead=${lead.source_event_id}`}
@@ -367,6 +475,8 @@ export default function CrmOperations() {
                   optedOut={lead.opted_out}
                   evidence={messageEvidence}
                   loading={evidenceLoading}
+                  error={evidenceError}
+                  retry={() => setRefreshKey((value) => value + 1)}
                   recordDelivery={(draftKind, draftId) => {
                     void command(`leads/${lead.id}/message-deliveries`, {
                       draft_kind: draftKind,
@@ -385,7 +495,9 @@ export default function CrmOperations() {
                       onChange={(event) => setDisposition(event.target.value)}
                     >
                       {dispositionOptions.map((value) => (
-                        <option key={value}>{value}</option>
+                        <option key={value} value={value}>
+                          {dispositionLabel(value)}
+                        </option>
                       ))}
                     </select>
                   </label>
@@ -512,9 +624,10 @@ export default function CrmOperations() {
             )}
             {selectedHistory.map((event) => (
               <article key={event.id} className="audit-event">
-                <strong>{event.disposition}</strong>
+                <strong>{dispositionLabel(event.disposition)}</strong>
                 <span>
-                  {event.prior_stage} → {event.resulting_stage}
+                  {stageLabel(event.prior_stage)} →{" "}
+                  {stageLabel(event.resulting_stage)}
                 </span>
                 <small>
                   {new Date(event.occurred_at).toLocaleString("es-US")} ·{" "}
@@ -531,25 +644,38 @@ export default function CrmOperations() {
               </article>
             ))}
           </div>
+          {retrySection("dispositions")}
+          {loadingSection("dispositions")}
         </section>
 
         <section className="panel crm-operations-panel" id="escalations">
           <span className="section-kicker">03 · Resolver y recuperar</span>
-          <h2>Escalaciones activas</h2>
+          <h2>Escalaciones de toda la operación</h2>
+          {messageScope === "queue" && message && (
+            <p className="inline-message" role="status" aria-live="polite">
+              {message}
+            </p>
+          )}
           <p>
-            Cada caso muestra su estado actual y una única acción principal. Las
-            acciones de supervisión están separadas al final de la tarjeta.
+            Esta cola incluye todos los casos. Cada tarjeta muestra su estado y
+            una única acción principal. Las acciones de supervisión están
+            separadas al final de la tarjeta.
           </p>
           {escalations.map((task) => (
             <article key={task.id} className="escalation-card">
               <div className="section-heading">
                 <div>
-                  <span className="section-kicker">{task.priority}</span>
-                  <h3>{task.reason_code}</h3>
+                  <span className="section-kicker">
+                    {statusLabel(task.priority)}
+                  </span>
+                  <h3>{reasonLabel(task.reason_code)}</h3>
                 </div>
-                <span className="badge">{task.lifecycle_state}</span>
+                <span className="badge">
+                  {statusLabel(task.lifecycle_state)}
+                </span>
               </div>
               <p>{task.redacted_summary}</p>
+              {caseLink(task.business_id, task.crm_lead_id)}
               <dl className="escalation-meta">
                 <div>
                   <dt>Vence</dt>
@@ -664,6 +790,8 @@ export default function CrmOperations() {
                       ))}
                     </select>
                   </label>
+                  {retrySection("team")}
+                  {loadingSection("team")}
                   <button
                     type="button"
                     className="secondary-button"
@@ -681,18 +809,32 @@ export default function CrmOperations() {
               )}
             </article>
           ))}
+          {retrySection("escalations")}
+          {loadingSection("escalations")}
+          {sectionsLoaded.escalations &&
+            !sectionErrors.escalations &&
+            escalations.length === 0 && (
+              <p>No hay escalaciones en esta cola.</p>
+            )}
 
-          <h2>Recuperación y entregas</h2>
+          <h2>Recuperación de toda la operación</h2>
           {recovery.map((item) => (
             <article key={item.id} className="evidence-card">
-              <strong>{item.reason_code}</strong>
+              <strong>{reasonLabel(item.reason_code)}</strong>
+              {caseLink(item.business_id, item.crm_lead_id)}
               <p>{item.details}</p>
             </article>
           ))}
+          {retrySection("recovery")}
+          {loadingSection("recovery")}
+          {sectionsLoaded.recovery &&
+            !sectionErrors.recovery &&
+            recovery.length === 0 && <p>No hay casos por recuperar.</p>}
 
-          <h2>Borradores de seguimiento</h2>
+          <h2>Borradores de seguimiento de toda la operación</h2>
           {followupDrafts.map((draft) => (
             <article key={draft.id} className="evidence-card">
+              {caseLink(draft.business_id, draft.crm_lead_id)}
               <label>
                 Borrador editable
                 <textarea
@@ -709,7 +851,7 @@ export default function CrmOperations() {
                   }
                 />
               </label>
-              <strong>{draft.status}</strong>
+              <strong>{statusLabel(draft.status)}</strong>
               {draft.status === "pending_review" && (
                 <button
                   onClick={() =>
@@ -725,8 +867,15 @@ export default function CrmOperations() {
               )}
             </article>
           ))}
+          {retrySection("follow-up-drafts")}
+          {loadingSection("follow-up-drafts")}
+          {sectionsLoaded["follow-up-drafts"] &&
+            !sectionErrors["follow-up-drafts"] &&
+            followupDrafts.length === 0 && (
+              <p>No hay borradores de seguimiento.</p>
+            )}
 
-          <h2>Entregas del partner</h2>
+          <h2>Entregas al socio de toda la operación</h2>
           <label>
             Modo del simulador
             <select
@@ -743,7 +892,8 @@ export default function CrmOperations() {
           </button>
           {deliveries.map((delivery) => (
             <article key={delivery.id} className="evidence-card">
-              <strong>{delivery.status}</strong>
+              <strong>{statusLabel(delivery.status)}</strong>
+              {caseLink(delivery.business_id, delivery.crm_lead_id)}
               <p>
                 Intentos: {delivery.attempt_count} ·{" "}
                 {delivery.last_error_category ?? "sin error"}
@@ -762,16 +912,27 @@ export default function CrmOperations() {
               )}
             </article>
           ))}
+          {retrySection("deliveries")}
+          {loadingSection("deliveries")}
+          {sectionsLoaded.deliveries &&
+            !sectionErrors.deliveries &&
+            deliveries.length === 0 && <p>No hay entregas al socio.</p>}
           <h3>Historial de intentos</h3>
           {attempts.map((attempt) => (
             <article key={attempt.id} className="evidence-card">
-              <strong>{attempt.outcome}</strong>
+              <strong>{statusLabel(attempt.outcome)}</strong>
+              {caseLink(attempt.business_id, attempt.crm_lead_id)}
               <p>
                 {attempt.error_category ?? "sin error"} ·{" "}
                 {new Date(attempt.completed_at).toLocaleString()}
               </p>
             </article>
           ))}
+          {retrySection("delivery-attempts")}
+          {loadingSection("delivery-attempts")}
+          {sectionsLoaded["delivery-attempts"] &&
+            !sectionErrors["delivery-attempts"] &&
+            attempts.length === 0 && <p>No hay intentos registrados.</p>}
         </section>
       </div>
     </div>

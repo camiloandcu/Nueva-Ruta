@@ -17,4 +17,4 @@ The case workspace has a compact header with `LEAD-…`, current stage, consent,
 
 ## Verification environment
 
-Run the authenticated UI in a reproducible local Compose/Supabase stack, add Playwright browser tests with role-specific synthetic accounts, and collect desktop/mobile screenshots plus trace artifacts on failures. The current WSL environment has no Docker executable or browser, so this requires an enabled Docker Desktop WSL integration or another authorized test runner before E2E completion can be claimed. The hosted demo is subject to WI-009's USD 7 cap and 2026-10-09 shutdown; it should not become the destructive test environment.
+Run the authenticated UI in the reproducible local Compose/Supabase stack, add Playwright browser tests with role-specific synthetic accounts, and collect desktop/mobile screenshots plus trace artifacts on failures. Docker Desktop WSL integration and Chromium are now available; the first two work items passed local E2E. The hosted demo is subject to WI-009's USD 7 cap and 2026-10-09 shutdown; it should not become the destructive test environment.

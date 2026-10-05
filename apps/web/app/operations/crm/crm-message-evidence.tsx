@@ -13,6 +13,8 @@ type Props = {
   optedOut: boolean | null;
   evidence: MessageEvidence[];
   loading: boolean;
+  error: boolean;
+  retry: () => void;
   recordDelivery: (
     kind: MessageEvidence["draft_kind"],
     draftId: string,
@@ -24,6 +26,8 @@ export function CrmMessageEvidence({
   optedOut,
   evidence,
   loading,
+  error,
+  retry,
   recordDelivery,
 }: Props) {
   const eligible = [
@@ -41,7 +45,15 @@ export function CrmMessageEvidence({
     >
       <h3>Mensajes aprobados de este caso</h3>
       {loading && <p>Cargando evidencia…</p>}
-      {!loading && evidence.length === 0 && (
+      {error && (
+        <p role="alert">
+          No se pudo cargar la evidencia del caso.{" "}
+          <button type="button" onClick={retry}>
+            Reintentar
+          </button>
+        </p>
+      )}
+      {!loading && !error && evidence.length === 0 && (
         <p>Aún no hay mensajes aprobados para este caso.</p>
       )}
       {evidence.map((item) => (

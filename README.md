@@ -16,7 +16,7 @@ flowchart LR
     db --> reports[Reporting, reconciliation, content evidence]
 ```
 
-- Operators process leads, review drafts, resolve escalations, record dispositions, and prepare partner handoffs.
+- Operators move through **Bandeja → Casos → Operación → Resultados**, with case-specific evidence and clearly labeled global queues. Every case has a stable `LEAD-…` label; its UUID remains available for audit.
 - Supervisors publish versioned rules, approve transfers and review actions, manage recovery, and reset synthetic demo state.
 - Analysts see attribution-safe reporting and reconciliation evidence.
 - No substantive message or partner transfer bypasses human authorization.
