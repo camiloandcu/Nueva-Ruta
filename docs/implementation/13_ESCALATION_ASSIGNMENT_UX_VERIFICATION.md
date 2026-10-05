@@ -1,6 +1,6 @@
 # Escalation assignment UX verification
 
-Status: locally implemented and verified on `feat/demo-ux-email-criteria`, 2026-10-05. Issue #24 tracks the correction on PR #20.
+Status: locally verified and deployed from `feat/demo-ux-email-criteria`, 2026-10-05. Issue #24 tracks the correction on PR #20.
 
 ## Observed issue and resolution
 
@@ -18,4 +18,4 @@ Status: locally implemented and verified on `feat/demo-ux-email-criteria`, 2026-
 - The two new escalation browser tests checked the operator's own-case filter, priority distinction, role-gated controls, explicit supervisor assignment, and stable neighbor height.
 - `RECORD_EVALUATOR_VIDEO=1 pnpm --dir apps/web exec playwright test e2e/evaluator-video.spec.ts` recorded the operator path from Intake approval through CRM delivery and disposition to escalation, reports, and reconciliation. The root `demo-flujo-completo.webm` is 22.24 seconds and ignored by Git.
 
-The hosted demo has not yet been updated with this correction; local Docker remains running for review.
+Railway demo web and API both deployed commit `9cad640` successfully. The public web `/api/health` returned `{"service":"web","status":"alive"}`. Hosted authenticated UI remains unverified because its assigned test credentials are unavailable here. Local Docker remains running for review.
