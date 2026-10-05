@@ -44,20 +44,20 @@ test("task navigation opens a case and global queues show their own case context
   );
   if (await queueLinks.count()) {
     const startingCase = await page
-      .getByRole("combobox", { name: "Caso" })
+      .getByRole("combobox", { name: "Caso", exact: true })
       .inputValue();
     const href = await queueLinks.first().getAttribute("href");
     await queueLinks.first().click();
     await expect(page).toHaveURL(new RegExp(`${href?.replace("?", "\\?")}$`));
     const caseId = new URL(page.url()).searchParams.get("lead");
-    await expect(page.getByRole("combobox", { name: "Caso" })).toHaveValue(
-      caseId ?? "",
-    );
+    await expect(
+      page.getByRole("combobox", { name: "Caso", exact: true }),
+    ).toHaveValue(caseId ?? "");
     await page.goBack();
     await expect(page).toHaveURL(/\/operations\/crm$/);
-    await expect(page.getByRole("combobox", { name: "Caso" })).toHaveValue(
-      startingCase,
-    );
+    await expect(
+      page.getByRole("combobox", { name: "Caso", exact: true }),
+    ).toHaveValue(startingCase);
   }
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({

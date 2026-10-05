@@ -10,6 +10,7 @@ node_modules/
 coverage/
 test-results/
 playwright-report/
+/demo-flujo-completo.webm
 *.tsbuildinfo
 
 # Python

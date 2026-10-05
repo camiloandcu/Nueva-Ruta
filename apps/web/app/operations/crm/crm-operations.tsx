@@ -40,6 +40,7 @@ type Escalation = {
   business_id: string | null;
 };
 type TeamMember = { id: string; display_name: string; role: string };
+type CrmAccess = { id: string; role: "operator" | "supervisor" };
 type Delivery = {
   id: string;
   status: string;
@@ -100,6 +101,13 @@ export default function CrmOperations() {
   const [recovery, setRecovery] = useState<Recovery[]>([]);
   const [followupDrafts, setFollowupDrafts] = useState<FollowupDraft[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
+  const [access, setAccess] = useState<CrmAccess | null>(null);
+  const [queueView, setQueueView] = useState<"all" | "mine" | "unassigned">(
+    "all",
+  );
+  const [assignmentSelection, setAssignmentSelection] = useState<
+    Record<string, string>
+  >({});
   const [dispositions, setDispositions] = useState<DispositionEvent[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState("");
   const [requestedLeadId, setRequestedLeadId] = useState<string | null>(null);
@@ -148,6 +156,7 @@ export default function CrmOperations() {
       if (path === "delivery-attempts") setAttempts(loaded);
       if (path === "follow-up-drafts") setFollowupDrafts(loaded);
       if (path === "team") setTeam(loaded);
+      if (path === "access") setAccess(loaded);
       if (path === "dispositions") setDispositions(loaded);
     } catch {
       setSectionErrors((current) => ({ ...current, [path]: true }));
@@ -165,6 +174,7 @@ export default function CrmOperations() {
         "delivery-attempts",
         "follow-up-drafts",
         "team",
+        "access",
         "dispositions",
       ].map(loadSection),
     );
@@ -239,6 +249,16 @@ export default function CrmOperations() {
   const selectedHistory = dispositions.filter(
     (event) => event.crm_lead_id === selectedLeadId,
   );
+  const visibleEscalations = escalations.filter((task) => {
+    if (queueView === "mine") return task.owner_id === access?.id;
+    if (queueView === "unassigned") return !task.owner_id;
+    return true;
+  });
+  const ownerName = (ownerId: string | null) =>
+    ownerId
+      ? (team.find((member) => member.id === ownerId)?.display_name ??
+        "Responsable no disponible")
+      : "Sin responsable";
   const retrySection = (path: string) =>
     sectionErrors[path] && (
       <p role="alert">
@@ -657,15 +677,42 @@ export default function CrmOperations() {
             </p>
           )}
           <p>
-            Esta cola incluye todos los casos. Cada tarjeta muestra su estado y
-            una única acción principal. Las acciones de supervisión están
-            separadas al final de la tarjeta.
+            Filtra la cola por responsable. Cada tarjeta muestra su prioridad,
+            vencimiento y siguiente acción. Solo supervisión puede asignar o
+            cerrar casos.
           </p>
-          {escalations.map((task) => (
-            <article key={task.id} className="escalation-card">
+          {retrySection("access")}
+          {loadingSection("access")}
+          <div
+            className="queue-filter"
+            role="group"
+            aria-label="Filtrar escalaciones"
+          >
+            <label>
+              Ver casos
+              <select
+                value={queueView}
+                onChange={(event) =>
+                  setQueueView(event.target.value as typeof queueView)
+                }
+              >
+                <option value="all">Toda la operación</option>
+                <option value="mine">Asignados a mí</option>
+                <option value="unassigned">Sin responsable</option>
+              </select>
+            </label>
+            <span>{visibleEscalations.length} casos en esta vista</span>
+          </div>
+          {visibleEscalations.map((task) => (
+            <article
+              key={task.id}
+              className="escalation-card"
+              data-escalation-id={task.id}
+              data-priority={task.priority}
+            >
               <div className="section-heading">
                 <div>
-                  <span className="section-kicker">
+                  <span className="section-kicker escalation-priority">
                     {statusLabel(task.priority)}
                   </span>
                   <h3>{reasonLabel(task.reason_code)}</h3>
@@ -682,8 +729,8 @@ export default function CrmOperations() {
                   <dd>{new Date(task.due_at).toLocaleString()}</dd>
                 </div>
                 <div>
-                  <dt>Asignación</dt>
-                  <dd>{task.owner_id ? "Caso asignado" : "Sin asignar"}</dd>
+                  <dt>Responsable</dt>
+                  <dd>{ownerName(task.owner_id)}</dd>
                 </div>
               </dl>
               {task.sla_breached && (
@@ -699,88 +746,97 @@ export default function CrmOperations() {
                     })
                   }
                 >
-                  Tomar caso
+                  Tomar caso para mí
                 </button>
               )}
-              {task.lifecycle_state === "assigned" && (
-                <button
-                  className="primary-action"
-                  onClick={() =>
-                    void command(`escalations/${task.id}/actions`, {
-                      action: "claim",
-                      correlation_id: `crm-${crypto.randomUUID()}`,
-                    })
-                  }
-                >
-                  Iniciar revisión
-                </button>
-              )}
-              {task.lifecycle_state === "in_review" && (
-                <form
-                  className="resolution-form"
-                  action={(form) =>
-                    void command(`escalations/${task.id}/actions`, {
-                      action: "resolve",
-                      resolution_action: String(form.get("resolution_action")),
-                      reason: String(form.get("reason")),
-                      correlation_id: `crm-${crypto.randomUUID()}`,
-                    })
-                  }
-                >
-                  <h4>Resolver caso</h4>
-                  <label>
-                    Resultado
-                    <select
-                      name="resolution_action"
-                      defaultValue="request_information"
-                    >
-                      <option value="request_information">
-                        Solicitar información
-                      </option>
-                      <option value="create_draft">Preparar borrador</option>
-                      <option value="transfer_eligibility">
-                        Revisar elegibilidad
-                      </option>
-                      <option value="link_reconciliation">
-                        Vincular conciliación
-                      </option>
-                    </select>
-                  </label>
-                  <label>
-                    Nota de resolución
-                    <input
-                      name="reason"
-                      required
-                      minLength={3}
-                      maxLength={300}
-                    />
-                  </label>
-                  <button className="primary-action" type="submit">
-                    Confirmar resolución
+              {task.lifecycle_state === "assigned" &&
+                task.owner_id === access?.id && (
+                  <button
+                    className="primary-action"
+                    onClick={() =>
+                      void command(`escalations/${task.id}/actions`, {
+                        action: "claim",
+                        correlation_id: `crm-${crypto.randomUUID()}`,
+                      })
+                    }
+                  >
+                    Iniciar revisión
                   </button>
-                </form>
-              )}
+                )}
+              {task.lifecycle_state === "assigned" &&
+                task.owner_id !== access?.id && (
+                  <p className="state-confirmation">
+                    {ownerName(task.owner_id)} tiene este caso asignado.
+                  </p>
+                )}
+              {task.lifecycle_state === "in_review" &&
+                (task.owner_id === access?.id ||
+                  access?.role === "supervisor") && (
+                  <form
+                    className="resolution-form"
+                    action={(form) =>
+                      void command(`escalations/${task.id}/actions`, {
+                        action: "resolve",
+                        resolution_action: String(
+                          form.get("resolution_action"),
+                        ),
+                        reason: String(form.get("reason")),
+                        correlation_id: `crm-${crypto.randomUUID()}`,
+                      })
+                    }
+                  >
+                    <h4>Resolver caso</h4>
+                    <label>
+                      Resultado
+                      <select
+                        name="resolution_action"
+                        defaultValue="request_information"
+                      >
+                        <option value="request_information">
+                          Solicitar información
+                        </option>
+                        <option value="create_draft">Preparar borrador</option>
+                        <option value="transfer_eligibility">
+                          Revisar elegibilidad
+                        </option>
+                        <option value="link_reconciliation">
+                          Vincular conciliación
+                        </option>
+                      </select>
+                    </label>
+                    <label>
+                      Nota de resolución
+                      <input
+                        name="reason"
+                        required
+                        minLength={3}
+                        maxLength={300}
+                      />
+                    </label>
+                    <button className="primary-action" type="submit">
+                      Confirmar resolución
+                    </button>
+                  </form>
+                )}
               {task.lifecycle_state === "resolved" ||
               task.lifecycle_state === "closed_with_reason" ? (
                 <p className="state-confirmation">
                   Este caso ya fue resuelto. Su evidencia permanece en el
                   historial.
                 </p>
-              ) : (
+              ) : access?.role === "supervisor" ? (
                 <details className="supervisor-actions">
                   <summary>Acciones de supervisión</summary>
                   <label>
-                    Asignar responsable
+                    Asignar a
                     <select
-                      defaultValue=""
-                      onChange={(event) => {
-                        if (event.target.value)
-                          void command(`escalations/${task.id}/actions`, {
-                            action: "assign",
-                            owner_id: event.target.value,
-                            correlation_id: `crm-${crypto.randomUUID()}`,
-                          });
-                      }}
+                      value={assignmentSelection[task.id] ?? ""}
+                      onChange={(event) =>
+                        setAssignmentSelection((current) => ({
+                          ...current,
+                          [task.id]: event.target.value,
+                        }))
+                      }
                     >
                       <option value="">Seleccionar responsable</option>
                       {team.map((member) => (
@@ -790,6 +846,28 @@ export default function CrmOperations() {
                       ))}
                     </select>
                   </label>
+                  <button
+                    type="button"
+                    className="primary-action"
+                    disabled={!assignmentSelection[task.id]}
+                    onClick={async () => {
+                      const applied = await command(
+                        `escalations/${task.id}/actions`,
+                        {
+                          action: "assign",
+                          owner_id: assignmentSelection[task.id],
+                          correlation_id: `crm-${crypto.randomUUID()}`,
+                        },
+                      );
+                      if (applied)
+                        setAssignmentSelection((current) => ({
+                          ...current,
+                          [task.id]: "",
+                        }));
+                    }}
+                  >
+                    Confirmar asignación
+                  </button>
                   {retrySection("team")}
                   {loadingSection("team")}
                   <button
@@ -806,14 +884,14 @@ export default function CrmOperations() {
                     Cerrar con motivo
                   </button>
                 </details>
-              )}
+              ) : null}
             </article>
           ))}
           {retrySection("escalations")}
           {loadingSection("escalations")}
           {sectionsLoaded.escalations &&
             !sectionErrors.escalations &&
-            escalations.length === 0 && (
+            visibleEscalations.length === 0 && (
               <p>No hay escalaciones en esta cola.</p>
             )}
 

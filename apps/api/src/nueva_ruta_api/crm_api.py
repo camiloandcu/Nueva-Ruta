@@ -310,6 +310,11 @@ async def escalations(_: Operator, settings: Config) -> list[dict[str, Any]]:
     return await CrmStore(settings).rows("operational_escalations", order="due_at.asc")
 
 
+@router.get("/access")
+async def crm_access(actor: Operator) -> dict[str, str]:
+    return {"id": str(actor.id), "role": actor.role.value}
+
+
 @router.get("/team")
 async def operator_team(_: Operator, settings: Config) -> list[dict[str, Any]]:
     async with httpx.AsyncClient(timeout=settings.request_timeout_seconds) as client:

@@ -30,6 +30,7 @@ def client_for(role: Role) -> Iterator[TestClient]:
 def test_analyst_cannot_read_or_mutate_crm() -> None:
     with client_for(Role.ANALYST) as client:
         assert client.get("/v1/crm/leads").status_code == 403
+        assert client.get("/v1/crm/access").status_code == 403
         response = client.post(
             "/v1/crm/leads/00000000-0000-0000-0000-000000000002/dispositions",
             json={
@@ -40,6 +41,14 @@ def test_analyst_cannot_read_or_mutate_crm() -> None:
             },
         )
     assert response.status_code == 403
+
+
+def test_crm_access_identifies_operator_and_supervisor() -> None:
+    for role in (Role.OPERATOR, Role.SUPERVISOR):
+        with client_for(role) as client:
+            response = client.get("/v1/crm/access")
+        assert response.status_code == 200
+        assert response.json() == {"id": str(TEST_USER), "role": role.value}
 
 
 def test_unauthenticated_actor_cannot_read_crm() -> None:
