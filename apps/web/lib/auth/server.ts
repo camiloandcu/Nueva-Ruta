@@ -13,8 +13,13 @@ export async function createSupabaseServerClient() {
         return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
-        for (const { name, value, options } of cookiesToSet) {
-          cookieStore.set(name, value, options);
+        try {
+          for (const { name, value, options } of cookiesToSet) {
+            cookieStore.set(name, value, options);
+          }
+        } catch {
+          // Server Components can read cookies but cannot write a refresh token.
+          // Route handlers and Server Actions use this same client where writes are valid.
         }
       },
     },

@@ -37,6 +37,10 @@ test("the demo login uses Supabase password auth without public signup", () => {
   assert.doesNotMatch(actions, /\.signUp\(/);
   assert.match(actions, /supabase\.auth\.signOut\(\)/);
   assert.match(layout, /Cerrar sesión/);
+  assert.match(
+    readFileSync(new URL("../lib/auth/server.ts", import.meta.url), "utf8"),
+    /Server Components can read cookies but cannot write a refresh token/,
+  );
 });
 
 test("rule operations flow through authenticated FastAPI proxy", () => {
