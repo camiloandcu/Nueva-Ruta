@@ -14,4 +14,4 @@
 
 - [x] 3.1 Add focused API and browser tests for the reported event relationship, URL selection, refresh, filtering, and wrong-case prevention.
 - [x] 3.2 Run relevant lint, typecheck, migration, API, UI, and browser checks; inspect desktop and mobile renderings.
-- [ ] 3.3 Update product documentation, archive the verified change to sync specifications, and follow the authorized issue/PR workflow.
+- [x] 3.3 Update product documentation and archive the verified change to sync specifications. The issue/PR workflow follows as a repository handoff.
