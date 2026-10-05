@@ -20,8 +20,8 @@
 
 ## 4. Temporary Railway + Supabase Cloud demo
 
-- [ ] 4.1 Inspect current provider plan/account state and calculate projected total; stop before provisioning if USD 7 cannot be guaranteed. (Supabase project quote is USD 0/month. Railway CLI reports USD 0 current usage/bill but not the plan; its minimum workspace compute hard limit is USD 10, above the USD 7 cap, so provisioning is on hold.)
-- [ ] 4.2 Provision the minimum Railway web/API/n8n/simulator services and one Supabase Cloud project using managed secrets and tracked SQL migrations/seeds only.
+- [ ] 4.1 Inspect current provider plan/account state and calculate projected total; stop before provisioning if USD 7 cannot be guaranteed. (User confirmed a 30-day USD 5 Railway trial. CLI showed USD 0 current usage/bill, but the plan is not exposed and the minimum compute hard limit is USD 10, so the USD 7 cap cannot be mechanically enforced.)
+- [ ] 4.2 Provision the minimum Railway web/API/n8n/simulator services and one Supabase Cloud project using managed secrets and tracked SQL migrations/seeds only. (Private Railway project and Supabase project created; no services deployed. Supabase is paused pending secure CLI access to the required service-role key.)
 - [ ] 4.3 Configure private service networking, application login/redirects, synthetic demo accounts, health checks and no public API/n8n/simulator endpoints.
 - [ ] 4.4 Verify hosted login, core demo flows, reset protections, secret boundaries and running cost while preserving the local stack as the source of truth.
 - [ ] 4.5 By 2026-10-09 (America/Bogota), stop Railway services, pause Supabase, verify public access is unavailable and record shutdown/cost state without deleting data.

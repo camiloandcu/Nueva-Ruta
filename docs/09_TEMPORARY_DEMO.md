@@ -14,14 +14,14 @@ Status: setup is conditional on verified provider costs staying within the appro
 
 ## Provisioning gate
 
-Before creating resources, record read-only provider account/plan state, project cost preview, chosen organization/workspace, projected compute/storage/network charges, and expected duration. If anything needed to establish the total is unknown or the ceiling cannot be enforced, stop before provisioning and report the blocker. Do not infer that a free tier means zero total cost without checking account billing state.
+Before starting workloads or database provisioning, record read-only provider account/plan state, project cost preview, chosen organization/workspace, projected compute/storage/network charges, and expected duration. If anything needed to establish the total is unknown or the ceiling cannot be enforced, stop before billable provisioning and report the blocker. Do not infer that a free tier means zero total cost without checking account billing state.
 
 ## Actual resource ledger
 
-| Provider/resource | Identifier (private ops only) | State | Cost evidence | Last checked |
-| --- | --- | --- | --- | --- |
-| Railway project/services | Pending cost gate | Not provisioned | Account plan/usage unavailable through connected Railway tools; no resource cost forecast yet | 2026-10-04 |
-| Supabase Cloud project | Pending estimate acknowledgement | Not provisioned | Connected organization quote: USD 0/month for project creation; usage/organization billing not included | 2026-10-04 |
+| Provider/resource        | Identifier (private ops only)                        | State                 | Cost evidence                                                                                                                                                                | Last checked |
+| ------------------------ | ---------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| Railway project/services | Private project `Influgain WI-009 Demo`; no services | No workloads deployed | User-confirmed USD 5 / 30-day trial; CLI workspace usage and estimated bill were USD 0. Workspace hard-limit minimum is USD 10, so no strict USD 7 enforcement is available. | 2026-10-05   |
+| Supabase Cloud project   | `influgain-wi009-demo`, `sa-east-1`                  | Created and paused    | Connected organization quote: USD 0/month for project creation; paused before migrations/seeds.                                                                              | 2026-10-05   |
 
 Do not place service keys, operator passwords, or full secret values in this ledger. Record only non-secret identifiers and redacted amounts/statuses in private implementation notes.
 
@@ -37,4 +37,4 @@ By 2026-10-09 23:59 America/Bogota:
 
 ## Current state
 
-At the time this document was added, provider integrations were connected and read-only checks found no existing Railway project and no existing Supabase project. Project creation remains on hold until Railway's current plan/usage and the full forecast are known and the Supabase USD 0/month quote is acknowledged. No cloud resource has been created.
+The user confirmed the Railway workspace has a 30-day USD 5 trial and asked us to proceed. We created a private Railway project (no services or deployments) and a Supabase project in `sa-east-1`; the Supabase project is paused. Railway has USD 0 current usage/bill and no hard limit. Its minimum compute hard limit is USD 10, so the exact USD 7 ceiling cannot be mechanically enforced. The Supabase MCP provides the publishable key but not the server-only service-role key required by FastAPI. We stopped before deploying, migrating, or seeding anything; no runtime services are running and no hosted data has been copied.
