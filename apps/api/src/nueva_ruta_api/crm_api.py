@@ -7,7 +7,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from nueva_ruta_api.auth import Principal, Role, get_settings, require_roles
@@ -313,9 +313,13 @@ async def approve_follow_up_draft(
 
 @router.post("/deliveries/process")
 async def process_deliveries(
-    body: DispatchRequest, _: Operator, settings: Config
+    body: DispatchRequest, request: Request, _: Operator, settings: Config
 ) -> dict[str, Any]:
-    return await dispatch_due_transfers(settings, body.mode)
+    return await dispatch_due_transfers(
+        settings,
+        body.mode,
+        correlation_id=request.state.correlation_id,
+    )
 
 
 @router.post("/deliveries/{event_id}/replay")

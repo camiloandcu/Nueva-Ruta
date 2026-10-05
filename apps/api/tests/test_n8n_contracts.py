@@ -4,6 +4,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def test_tracked_workflows_are_importable_and_correlate_api_requests() -> None:
+    workflow_paths = sorted((ROOT / "infra/n8n/workflows").glob("wi-*.json"))
+    assert len(workflow_paths) == 4
+    for path in workflow_paths:
+        workflow = json.loads(path.read_text())
+        assert workflow["id"]
+        assert not workflow.get("credentials")
+        for node in workflow["nodes"]:
+            if node["type"] != "n8n-nodes-base.httpRequest":
+                continue
+            headers = node["parameters"].get("headerParameters", {}).get("parameters", [])
+            assert any(header["name"].lower() == "x-correlation-id" for header in headers)
+
+
 def test_wi005_n8n_disposition_workflow_uses_only_fastapi_and_branches_all_commands() -> None:
     workflow = json.loads((ROOT / "infra/n8n/workflows/wi-005-crm-disposition.json").read_text())
     nodes = workflow["nodes"]

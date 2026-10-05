@@ -153,11 +153,34 @@ test_database() {
   supabase_cli test db
 }
 
+load_test() {
+  require_command docker
+  require_command pnpm
+  require_command python3
+  require_command curl
+  require_command uv
+  require_environment
+  prepare_docker_environment
+  if ! supabase_cli start >/dev/null; then
+    die "Supabase local failed to start; rerun with pnpm exec supabase start for diagnostics"
+  fi
+  if [[ ! -f "$RUNTIME_ENV" ]]; then
+    write_runtime_environment
+  fi
+  compose --profile loadtest up --detach --build api-loadtest
+  trap 'compose --profile loadtest rm --stop --force api-loadtest >/dev/null 2>&1 || true' EXIT
+  wait_for_url "deterministic-loadtest-api" "http://localhost:8001/health/ready"
+  LOAD_TEST_API_URL="http://127.0.0.1:8001" \
+    LOAD_TEST_AI_PROVIDER=deterministic \
+    uv run python "$PROJECT_ROOT/scripts/load_test_inbound.py" "$@"
+}
+
 case "${1:-}" in
   start) start_stack ;;
   stop) stop_stack ;;
   reset|seed) reset_database ;;
   test-db) test_database ;;
+  load-test) shift; load_test "$@" ;;
   verify) verify_stack ;;
-  *) die "usage: $0 {start|stop|seed|reset|test-db|verify}" ;;
+  *) die "usage: $0 {start|stop|seed|reset|test-db|load-test|verify}" ;;
 esac

@@ -1,7 +1,7 @@
 # Nueva Ruta Ops — Planning Index
 
 Status: approved by human (2/10/2026 12:56 p.m. COL)
-Last updated: 2026-10-02
+Last updated: 2026-10-04
 Planning authority: these documents supersede conversational summaries once approved.
 
 ## Purpose
@@ -30,7 +30,11 @@ This package preserves the complete product and technical intent before any impl
 
 ## Current OpenSpec status
 
-The premature monolithic `build-nueva-ruta-ops` change was deleted with explicit Product Owner authorization after its useful decisions were extracted into this approved package. No product work item currently has an OpenSpec change.
+The premature monolithic `build-nueva-ruta-ops` change was deleted with explicit Product Owner authorization after its useful decisions were extracted into this approved package. WI-009 is the active approved change; its hosting constraints are recorded in ADR-025. See the current work item in [08_WORK_ITEMS.md](08_WORK_ITEMS.md).
+
+## Release evidence
+
+Current operational docs live under `docs/`: [architecture and operations](../07_ARCHITECTURE_OPERATIONS.md), [AI-use guide](../08_AI_USE.md), [temporary demo runbook](../09_TEMPORARY_DEMO.md), [partner-data cleaning](../10_PARTNER_DATA_CLEANING.md), [scale report](../11_SCALE_REPORT.md), and [timed demo script](../12_DEMO_SCRIPT.md).
 
 ## Review checklist
 

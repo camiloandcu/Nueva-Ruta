@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from uuid import UUID
 
 from fastapi.testclient import TestClient
-from nueva_ruta_api import auth, main
+from nueva_ruta_api import auth, crm_api, main
 from nueva_ruta_api.auth import Principal, Role
 from nueva_ruta_api.config import Settings
 
@@ -63,3 +63,23 @@ def test_operator_invalid_callback_is_rejected_before_domain_write() -> None:
         )
     assert response.status_code == 422
     assert "Call Back requires" in response.text
+
+
+def test_delivery_processing_passes_request_correlation_to_simulator_boundary(
+    monkeypatch,
+) -> None:
+    async def dispatch(settings, mode, *, correlation_id=None):
+        assert settings == TEST_SETTINGS
+        assert mode == "success"
+        return {"correlation_id": correlation_id}
+
+    monkeypatch.setattr(crm_api, "dispatch_due_transfers", dispatch)
+    with client_for(Role.OPERATOR) as client:
+        response = client.post(
+            "/v1/crm/deliveries/process",
+            headers={"X-Correlation-ID": "wi005-flow-001"},
+            json={"mode": "success"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {"correlation_id": "wi005-flow-001"}

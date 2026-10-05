@@ -1,12 +1,46 @@
+import json
+import logging
+import re
+import time
 from datetime import UTC, datetime
 from enum import StrEnum
 from hashlib import sha256
 from typing import Literal
+from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 app = FastAPI(title="Nueva Ruta Simulator", version="0.1.0")
+
+logger = logging.getLogger("nueva_ruta.simulator.request")
+CORRELATION_ID = re.compile(r"^[A-Za-z0-9._:-]{1,100}$")
+
+
+class RequestObservabilityMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        supplied = request.headers.get("x-correlation-id", "")
+        correlation_id = supplied if CORRELATION_ID.fullmatch(supplied) else str(uuid4())
+        started = time.perf_counter()
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+            response.headers["X-Correlation-ID"] = correlation_id
+            return response
+        finally:
+            logger.info(json.dumps({
+                "event": "http_request",
+                "correlation_id": correlation_id,
+                "method": request.method,
+                "route": getattr(request.scope.get("route"), "path", "unmatched"),
+                "status_code": status_code,
+                "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+            }, separators=(",", ":"), sort_keys=True))
+
+
+app.add_middleware(RequestObservabilityMiddleware)
 
 
 @app.get("/health/live")

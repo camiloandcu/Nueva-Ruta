@@ -29,6 +29,35 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  api-loadtest:
+    profiles: ["loadtest"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:?SUPABASE_URL is required}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?SUPABASE_ANON_KEY is required}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY is required}
+      AI_PROVIDER: deterministic
+      OPENAI_API_KEY: ""
+      OPENAI_MODEL: ""
+      SIMULATOR_URL: http://simulator:8081
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=3)"
+      interval: 5s
+      timeout: 4s
+      retries: 20
+      start_period: 10s
+    restart: "no"
+
   web:
     build:
       context: .
