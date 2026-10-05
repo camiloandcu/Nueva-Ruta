@@ -60,7 +60,7 @@ Local URLs: web <http://localhost:3000>, API docs <http://localhost:8000/docs>, 
 
 WI-009 defines a short-lived, authenticated synthetic demo on Railway + Supabase Cloud, approved up to USD 7 total and expiring **2026-10-09 at 23:59 America/Bogota**. It remains conditional on a verifiable cost path within that cap. Only the web UI may be public; API, n8n, and simulator remain private. No live AI or real lead data is used. The local stack remains authoritative. See [temporary demo operations](docs/09_TEMPORARY_DEMO.md).
 
-The authenticated [temporary demo](https://web-demo-ffe2.up.railway.app/) serves the current Intake and CRM case workflow. Access requires an assigned demo account; local `.env` credentials are not interchangeable with hosted credentials.
+The authenticated [temporary demo](https://web-demo-ffe2.up.railway.app/) serves Intake, case-centered CRM, reconciliation, and reporting with inline enrollment origin. Access requires an assigned demo account; local `.env` credentials are not interchangeable with hosted credentials.
 
 ## Documentation
 

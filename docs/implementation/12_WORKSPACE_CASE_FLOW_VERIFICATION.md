@@ -1,6 +1,6 @@
 # Workspace and case flow verification
 
-Status: locally implemented and verified on `feat/demo-ux-email-criteria`, 2026-10-05. Hosted rollout is recorded below after deployment.
+Status: locally implemented, verified, and deployed from `feat/demo-ux-email-criteria`, 2026-10-05.
 
 ## Observed UX problems and changes
 
@@ -24,4 +24,6 @@ Status: locally implemented and verified on `feat/demo-ux-email-criteria`, 2026-
 
 ## Hosted rollout
 
-Pending final deployment verification. The hosted synthetic case was not mutated for these tests.
+- The case-context migration was applied to the temporary Supabase project. A read-only check found the reported `LEAD-054` case and its linked escalation and recovery records.
+- Railway demo API and web both deployed commit `22957fe` successfully. The public `/api/health` returned `{"service":"web","status":"alive"}`. n8n and simulator remained in their configured sleeping state.
+- Authenticated hosted UI inspection remains unverified because the assigned hosted test credentials are unavailable in this workspace. The eight authenticated browser scenarios ran against the equivalent local stack; hosted synthetic case data was not mutated for these tests.
