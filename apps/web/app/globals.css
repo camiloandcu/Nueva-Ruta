@@ -433,7 +433,7 @@ button:disabled {
   display: grid;
   gap: 0.25rem;
   padding: 1rem 1.25rem;
-  border-left: 5px solid #117c55;
+  border: 1px solid #a3d4b7;
   border-radius: 0.7rem;
   background: #e8f5ec;
 }
@@ -585,7 +585,7 @@ button:disabled {
   margin: 1.2rem 0;
 }
 .crm-workspace .evidence-card {
-  border-left-color: #16845c;
+  border-color: #a3d4b7;
 }
 
 .crm-operations-panel {
@@ -612,19 +612,17 @@ button:disabled {
   gap: 0.85rem;
   padding: 1.1rem;
   border: 1px solid #d8e3da;
-  border-left: 5px solid #718a7d;
   border-radius: 0.8rem;
   background: #fff;
 }
 
 .escalation-card[data-priority="high"] {
-  border-left-color: #a76322;
+  border-color: #d9b77f;
   background: #fffaf1;
 }
 
 .escalation-card[data-priority="urgent"] {
   border-color: #cb837e;
-  border-left: 6px solid #a92f2a;
   background: #fff2f0;
 }
 
@@ -826,8 +824,8 @@ button:disabled {
 
 .script-card blockquote {
   padding: 0.85rem 1rem;
-  border-left: 3px solid #8ab29a;
-  border-radius: 0 0.45rem 0.45rem 0;
+  border: 1px solid #dce8df;
+  border-radius: 0.45rem;
   background: #f3f7f3;
   line-height: 1.55;
 }
@@ -1050,7 +1048,8 @@ button:disabled {
 .evidence-card {
   margin: 0.8rem 0;
   padding: 1rem;
-  border-left: 4px solid #9a4e2d;
+  border: 1px solid #dfd4c7;
+  border-radius: 0.65rem;
   background: #f7f4ed;
 }
 
