@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import {
+  CrmMessageEvidence,
+  type MessageEvidence,
+} from "./crm-message-evidence";
+
 type Lead = {
   id: string;
   business_id: string;
@@ -60,7 +65,6 @@ type DispositionEvent = {
   occurred_at: string;
   correlation_id: string;
 };
-
 const dispositionOptions = [
   "No Answer",
   "Info Sent",
@@ -84,6 +88,12 @@ export default function CrmOperations() {
   const [message, setMessage] = useState("");
   const [mode, setMode] = useState("success");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [messageEvidence, setMessageEvidence] = useState<MessageEvidence[]>([]);
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const [selectedDeliveryId, setSelectedDeliveryId] = useState("");
+  const [disposition, setDisposition] = useState("No Answer");
+  const [dispositionReason, setDispositionReason] = useState("");
+  const [manualReference, setManualReference] = useState("");
 
   const load = useCallback(async () => {
     const endpoints = [
@@ -124,6 +134,46 @@ export default function CrmOperations() {
     return () => window.clearTimeout(timer);
   }, [load, refreshKey]);
 
+  useEffect(() => {
+    if (!selectedLeadId) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setEvidenceLoading(true);
+      void fetch(
+        `/api/operations/crm/leads/${selectedLeadId}/message-evidence`,
+        {
+          cache: "no-store",
+        },
+      )
+        .then(async (response) => {
+          if (!response.ok)
+            throw new Error("No se pudo cargar la evidencia del caso.");
+          return (await response.json()) as MessageEvidence[];
+        })
+        .then((evidence) => {
+          if (!active) return;
+          setMessageEvidence(evidence);
+          setSelectedDeliveryId(
+            evidence.find((item) => item.delivery_event_id)
+              ?.delivery_event_id ?? "",
+          );
+        })
+        .catch(() => {
+          if (active)
+            setMessage(
+              "No se pudo cargar la evidencia de mensajes de este caso.",
+            );
+        })
+        .finally(() => {
+          if (active) setEvidenceLoading(false);
+        });
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [selectedLeadId, refreshKey]);
+
   const filteredLeads = leads.filter(
     (lead) =>
       lead.id === selectedLeadId ||
@@ -136,28 +186,36 @@ export default function CrmOperations() {
   );
 
   async function command(path: string, body: unknown, method = "POST") {
-    const response = await fetch(`/api/operations/crm/${path}`, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: method === "GET" ? undefined : JSON.stringify(body),
-    });
-    const result = await response.json();
-    setMessage(
-      response.ok
-        ? result.lifecycle_state
-          ? `Estado de la escalación actualizado: ${result.lifecycle_state}.`
-          : result.prior_stage && result.commercial_stage
-            ? "Disposición registrada: " +
-              result.prior_stage +
-              " → " +
-              result.commercial_stage
-            : "Acción registrada. La evidencia se actualizó."
-        : "No se aplicó: " +
-            (typeof result.detail === "string"
-              ? result.detail
-              : "revisa el estado y los datos requeridos."),
-    );
-    if (response.ok) setRefreshKey((value) => value + 1);
+    try {
+      const response = await fetch(`/api/operations/crm/${path}`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: method === "GET" ? undefined : JSON.stringify(body),
+      });
+      const result = await response.json();
+      setMessage(
+        response.ok
+          ? result.lifecycle_state
+            ? `Estado de la escalación actualizado: ${result.lifecycle_state}.`
+            : result.prior_stage && result.commercial_stage
+              ? "Disposición registrada: " +
+                result.prior_stage +
+                " → " +
+                result.commercial_stage
+              : "Acción registrada. La evidencia se actualizó."
+          : "No se aplicó: " +
+              (typeof result.detail === "string"
+                ? result.detail
+                : "revisa el estado y los datos requeridos."),
+      );
+      if (response.ok) setRefreshKey((value) => value + 1);
+      return response.ok;
+    } catch {
+      setMessage(
+        "No se pudo conectar con el CRM. Vuelve a intentar la acción.",
+      );
+      return false;
+    }
   }
 
   async function submitDisposition(form: FormData, lead: Lead) {
@@ -169,23 +227,33 @@ export default function CrmOperations() {
     const body: Record<string, unknown> = {
       disposition,
       idempotency_key: crypto.randomUUID(),
-      reason: String(form.get("reason")),
+      reason: dispositionReason,
       correlation_id: `crm-${crypto.randomUUID()}`,
-      external_action_reference:
-        String(form.get("external_action_reference") || "") || null,
       explicit_opt_out:
         disposition === "No le interesa" &&
         Boolean(form.get("explicit_opt_out")),
     };
-    if (form.get("crm_follow_up_draft_id"))
-      body.crm_follow_up_draft_id = String(form.get("crm_follow_up_draft_id"));
+    if (disposition === "Info Sent") {
+      const enteredReference = manualReference.trim();
+      if (enteredReference) body.external_action_reference = enteredReference;
+      else if (selectedDeliveryId) body.delivery_event_id = selectedDeliveryId;
+      else {
+        setMessage(
+          "Registra una entrega simulada o documenta la acción manual antes de marcar Info Sent.",
+        );
+        return;
+      }
+    }
     if (disposition === "Call Back") {
       body.callback_at = new Date(
         String(form.get("callback_at")),
       ).toISOString();
       body.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     }
-    await command(`leads/${lead.id}/dispositions`, body);
+    if (await command(`leads/${lead.id}/dispositions`, body)) {
+      setDispositionReason("");
+      setManualReference("");
+    }
   }
 
   return (
@@ -225,6 +293,11 @@ export default function CrmOperations() {
               value={selectedLeadId}
               onChange={(event) => {
                 setSelectedLeadId(event.target.value);
+                setMessageEvidence([]);
+                setSelectedDeliveryId("");
+                setDisposition("No Answer");
+                setDispositionReason("");
+                setManualReference("");
                 window.history.replaceState(
                   null,
                   "",
@@ -289,10 +362,28 @@ export default function CrmOperations() {
                       Marcar como pre-calificado
                     </button>
                   )}
+                <CrmMessageEvidence
+                  commercialStage={lead.commercial_stage}
+                  optedOut={lead.opted_out}
+                  evidence={messageEvidence}
+                  loading={evidenceLoading}
+                  recordDelivery={(draftKind, draftId) => {
+                    void command(`leads/${lead.id}/message-deliveries`, {
+                      draft_kind: draftKind,
+                      draft_id: draftId,
+                      idempotency_key: crypto.randomUUID(),
+                      correlation_id: `crm-${crypto.randomUUID()}`,
+                    });
+                  }}
+                />
                 <form action={(form) => void submitDisposition(form, lead)}>
                   <label>
                     Disposición
-                    <select name="disposition" defaultValue="No Answer">
+                    <select
+                      name="disposition"
+                      value={disposition}
+                      onChange={(event) => setDisposition(event.target.value)}
+                    >
                       {dispositionOptions.map((value) => (
                         <option key={value}>{value}</option>
                       ))}
@@ -300,38 +391,89 @@ export default function CrmOperations() {
                   </label>
                   <label>
                     Motivo
-                    <input name="reason" required maxLength={300} />
+                    <input
+                      name="reason"
+                      value={dispositionReason}
+                      onChange={(event) =>
+                        setDispositionReason(event.target.value)
+                      }
+                      required
+                      maxLength={300}
+                    />
                   </label>
-                  <label>
-                    Referencia de acción externa (para “Info Sent”)
-                    <input name="external_action_reference" maxLength={200} />
-                  </label>
-                  <label>
-                    Borrador aprobado (opcional)
-                    <select name="crm_follow_up_draft_id" defaultValue="">
-                      <option value="">Sin borrador vinculado</option>
-                      {followupDrafts
-                        .filter(
-                          (draft) =>
-                            draft.crm_lead_id === lead.id &&
-                            draft.status === "approved",
-                        )
-                        .map((draft) => (
-                          <option key={draft.id} value={draft.id}>
-                            {draft.content.slice(0, 80)}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-                  <label>
-                    Fecha y hora de devolución de llamada
-                    <input name="callback_at" type="datetime-local" />
-                  </label>
-                  <label>
-                    <input name="explicit_opt_out" type="checkbox" /> La persona
-                    pidió explícitamente no recibir más contacto
-                  </label>
-                  <button type="submit">Registrar disposición</button>
+                  {disposition === "Info Sent" && (
+                    <>
+                      <label>
+                        Entrega simulada del caso
+                        <select
+                          value={selectedDeliveryId}
+                          onChange={(event) =>
+                            setSelectedDeliveryId(event.target.value)
+                          }
+                        >
+                          <option value="">Sin entrega simulada</option>
+                          {messageEvidence
+                            .filter((item) => item.delivery_event_id)
+                            .map((item) => (
+                              <option
+                                key={item.delivery_event_id}
+                                value={item.delivery_event_id ?? ""}
+                              >
+                                {item.draft_kind === "intake"
+                                  ? "Entrada"
+                                  : "Seguimiento"}{" "}
+                                · {item.content.slice(0, 60)}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+                      <label>
+                        Referencia de acción manual externa (si no usas entrega
+                        simulada)
+                        <input
+                          name="external_action_reference"
+                          value={manualReference}
+                          onChange={(event) =>
+                            setManualReference(event.target.value)
+                          }
+                          maxLength={200}
+                        />
+                      </label>
+                    </>
+                  )}
+                  {disposition === "Call Back" && (
+                    <label>
+                      Fecha y hora de devolución de llamada
+                      <input
+                        name="callback_at"
+                        type="datetime-local"
+                        required
+                      />
+                    </label>
+                  )}
+                  {disposition === "No le interesa" && (
+                    <label>
+                      <input name="explicit_opt_out" type="checkbox" /> La
+                      persona pidió explícitamente no recibir más contacto
+                    </label>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={
+                      lead.opted_out ||
+                      lead.commercial_stage === "enrolled" ||
+                      (disposition !== "No le interesa" &&
+                        ![
+                          "prequalified",
+                          "contact_attempted",
+                          "info_sent",
+                          "callback_scheduled",
+                          "transferred",
+                        ].includes(lead.commercial_stage))
+                    }
+                  >
+                    Registrar disposición
+                  </button>
                 </form>
                 <button
                   onClick={() =>
@@ -376,7 +518,13 @@ export default function CrmOperations() {
                 </span>
                 <small>
                   {new Date(event.occurred_at).toLocaleString("es-US")} ·{" "}
-                  {event.side_effect_status}
+                  {event.side_effect_status === "approved_draft"
+                    ? "Aprobación histórica · sin constancia de entrega"
+                    : event.side_effect_status === "simulated_delivery"
+                      ? "Entrega simulada registrada"
+                      : event.side_effect_status === "manual_action_recorded"
+                        ? "Acción manual documentada"
+                        : event.side_effect_status}
                 </small>
                 <p>{event.reason}</p>
                 <code>{event.correlation_id}</code>

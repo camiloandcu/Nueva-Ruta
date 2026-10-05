@@ -1,5 +1,5 @@
 begin;
-select plan(51);
+select plan(53);
 
 select has_table('public','crm_lead_states','commercial state is persisted separately');
 select has_table('public','crm_disposition_events','dispositions retain audit evidence');
@@ -61,12 +61,24 @@ select lives_ok($$select public.approve_crm_follow_up_draft(jsonb_build_object(
 ))$$,'approved follow-up stores its edited content and checksum');
 select is((select status from public.crm_follow_up_drafts where disposition_key='wi005-no-answer-0001'),
   'approved','follow-up draft remains separately approved');
-select lives_ok($$select public.apply_crm_disposition(jsonb_build_object(
+select throws_ok($$select public.apply_crm_disposition(jsonb_build_object(
   'actor_id',(select id from public.app_users where role='operator' and active limit 1),
   'crm_lead_id',(select state.id from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-017'),
   'disposition','Info Sent','crm_follow_up_draft_id',(select id from public.crm_follow_up_drafts where disposition_key='wi005-no-answer-0001'),
-  'idempotency_key','wi005-info-sent-0001','reason','Approved follow-up action recorded','correlation_id','wi005-sql-info-sent'
-))$$,'Info Sent accepts only a lead-linked approved follow-up');
+  'idempotency_key','wi005-info-sent-approval-only','reason','Approved follow-up alone','correlation_id','wi005-sql-info-sent'
+))$$,'22023',null,'approval alone cannot mark Info Sent');
+select lives_ok($$select public.record_simulated_message_delivery(jsonb_build_object(
+  'actor_id',(select id from public.app_users where role='operator' and active limit 1),
+  'crm_lead_id',(select state.id from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-017'),
+  'draft_kind','follow_up','draft_id',(select id from public.crm_follow_up_drafts where disposition_key='wi005-no-answer-0001'),
+  'idempotency_key','wi005-message-delivered-0001','correlation_id','wi005-sql-delivery'
+))$$,'approved follow-up can be recorded as simulated delivery');
+select lives_ok($$select public.apply_crm_disposition(jsonb_build_object(
+  'actor_id',(select id from public.app_users where role='operator' and active limit 1),
+  'crm_lead_id',(select state.id from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-017'),
+  'disposition','Info Sent','delivery_event_id',(select id from public.crm_message_delivery_events where idempotency_key='wi005-message-delivered-0001'),
+  'idempotency_key','wi005-info-sent-0001','reason','Simulated follow-up delivery recorded','correlation_id','wi005-sql-info-sent'
+))$$,'Info Sent accepts linked simulated delivery evidence');
 select is((select commercial_stage::text from public.crm_lead_states state join public.leads lead on lead.id=state.baseline_lead_id where lead.business_id='LEAD-017'),
   'info_sent','Info Sent applies its documented stage');
 

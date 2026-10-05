@@ -6,4 +6,4 @@
 4. **Rollout:** Repair the case path and data contract before reshaping the home and long CRM page. Reason: navigation and UX must rest on a reliable case relationship.
 5. **Verification:** Treat source tests as baseline only; require real browser E2E plus database assertions for completion. Reason: current tests cannot catch the reported picker omission.
 
-Open for product-owner review: whether an approved draft should be used to create a distinct simulated delivery action in this prototype, or whether the only supported `Info Sent` route should be a documented manual action. Both preserve the approval/delivery separation. The recommended option is a distinct simulated delivery action so the demo visibly completes the workflow.
+Product-owner decision: use a distinct simulated-delivery action. `Info Sent` also accepts a documented manual action. Neither route treats draft approval as delivery.

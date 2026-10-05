@@ -98,6 +98,59 @@ def test_operator_can_read_disposition_audit_trail(monkeypatch) -> None:
         response = client.get("/v1/crm/dispositions")
 
     assert response.status_code == 200
-    assert response.json() == [
-        {"disposition": "Info Sent", "resulting_stage": "info_sent"}
-    ]
+    assert response.json() == [{"disposition": "Info Sent", "resulting_stage": "info_sent"}]
+
+
+def test_message_evidence_is_case_scoped_and_operator_only(monkeypatch) -> None:
+    lead_id = "00000000-0000-0000-0000-000000000002"
+
+    async def rows(self, table: str, **kwargs: object):
+        del self
+        assert table == "operational_crm_message_evidence"
+        assert kwargs == {
+            "order": "approved_at.desc",
+            "filters": {"crm_lead_id": f"eq.{lead_id}"},
+        }
+        return [{"crm_lead_id": lead_id, "draft_kind": "intake"}]
+
+    monkeypatch.setattr(CrmStore, "rows", rows)
+    with client_for(Role.ANALYST) as client:
+        assert client.get(f"/v1/crm/leads/{lead_id}/message-evidence").status_code == 403
+    with client_for(Role.OPERATOR) as client:
+        response = client.get(f"/v1/crm/leads/{lead_id}/message-evidence")
+    assert response.status_code == 200
+    assert response.json() == [{"crm_lead_id": lead_id, "draft_kind": "intake"}]
+
+
+def test_message_delivery_command_passes_case_and_actor(monkeypatch) -> None:
+    lead_id = "00000000-0000-0000-0000-000000000002"
+    draft_id = "00000000-0000-0000-0000-000000000003"
+
+    async def rpc(self, name: str, payload: dict[str, object]):
+        del self
+        assert name == "record_simulated_message_delivery"
+        assert payload["p_payload"] == {
+            "draft_kind": "intake",
+            "draft_id": draft_id,
+            "idempotency_key": "delivery-key-0001",
+            "correlation_id": "crm-api-delivery",
+            "actor_id": str(TEST_USER),
+            "crm_lead_id": lead_id,
+        }
+        return {"channel": "simulated", "delivery_event_id": draft_id}
+
+    monkeypatch.setattr(CrmStore, "rpc", rpc)
+    body = {
+        "draft_kind": "intake",
+        "draft_id": draft_id,
+        "idempotency_key": "delivery-key-0001",
+        "correlation_id": "crm-api-delivery",
+    }
+    with client_for(Role.ANALYST) as client:
+        assert (
+            client.post(f"/v1/crm/leads/{lead_id}/message-deliveries", json=body).status_code == 403
+        )
+    with client_for(Role.OPERATOR) as client:
+        response = client.post(f"/v1/crm/leads/{lead_id}/message-deliveries", json=body)
+    assert response.status_code == 200
+    assert response.json()["channel"] == "simulated"

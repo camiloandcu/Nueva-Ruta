@@ -45,8 +45,7 @@ class DispositionRequest(StrictModel):
     correlation_id: str = Field(min_length=1, max_length=100)
     callback_at: datetime | None = None
     timezone: str | None = Field(default=None, max_length=80)
-    draft_id: UUID | None = None
-    crm_follow_up_draft_id: UUID | None = None
+    delivery_event_id: UUID | None = None
     external_action_reference: str | None = Field(default=None, max_length=200)
     explicit_opt_out: bool = False
 
@@ -74,12 +73,21 @@ class DispositionRequest(StrictModel):
         ):
             raise ValueError("Call Back requires a timezone-aware future timestamp and timezone")
         if self.disposition == Disposition.INFO_SENT.value and not (
-            self.draft_id or self.crm_follow_up_draft_id or self.external_action_reference
+            self.delivery_event_id or self.external_action_reference
         ):
             raise ValueError(
-                "Info Sent requires approved delivery evidence or an external action reference"
+                "Info Sent requires simulated delivery or an external action reference"
             )
+        if self.delivery_event_id and self.external_action_reference:
+            raise ValueError("Select one delivery evidence route")
         return self
+
+
+class SimulatedDeliveryRequest(StrictModel):
+    draft_kind: Literal["intake", "follow_up"]
+    draft_id: UUID
+    idempotency_key: str = Field(min_length=8, max_length=120)
+    correlation_id: str = Field(min_length=1, max_length=100)
 
 
 class TransferApprovalRequest(StrictModel):
@@ -124,8 +132,11 @@ class DispatchRequest(StrictModel):
 
 def api_error(exc: httpx.HTTPStatusError) -> HTTPException:
     code = ""
+    message = ""
     try:
-        code = str(exc.response.json().get("code", ""))
+        payload = exc.response.json()
+        code = str(payload.get("code", ""))
+        message = str(payload.get("message", ""))
     except (ValueError, AttributeError):
         pass
     if code == "42501":
@@ -139,7 +150,31 @@ def api_error(exc: httpx.HTTPStatusError) -> HTTPException:
             status.HTTP_409_CONFLICT, "CRM record already has a conflicting command or transfer"
         )
     if exc.response.status_code in {400, 422} or code in {"22023", "23514", "22P02"}:
-        return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "CRM command failed validation")
+        known_errors = {
+            "qualify lead before recording delivery": (
+                "Califica el caso antes de registrar la entrega."
+            ),
+            "granted consent required for simulated delivery": (
+                "Se requiere consentimiento vigente para registrar la entrega."
+            ),
+            "opted-out lead cannot receive a message": "Este caso tiene el contacto revocado.",
+            "approved draft does not belong to this lead": (
+                "El borrador aprobado no pertenece a este caso."
+            ),
+            "simulated delivery does not belong to this lead": (
+                "La entrega seleccionada no pertenece a este caso."
+            ),
+            "approval alone is not delivery evidence": (
+                "La aprobación del borrador no demuestra el envío."
+            ),
+            "disposition is not valid from current stage": (
+                "Esta disposición no es válida para la etapa actual."
+            ),
+        }
+        return HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            known_errors.get(message, "CRM command failed validation"),
+        )
     return HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "CRM store unavailable")
 
 
@@ -158,6 +193,47 @@ async def crm_leads(
 @router.get("/dispositions")
 async def dispositions(_: Operator, settings: Config) -> list[dict[str, Any]]:
     return await CrmStore(settings).rows("crm_disposition_events", order="occurred_at.desc")
+
+
+@router.get("/leads/{crm_lead_id}/message-evidence")
+async def message_evidence(
+    crm_lead_id: UUID, _: Operator, settings: Config
+) -> list[dict[str, Any]]:
+    try:
+        return await CrmStore(settings).rows(
+            "operational_crm_message_evidence",
+            order="approved_at.desc",
+            filters={"crm_lead_id": f"eq.{crm_lead_id}"},
+        )
+    except httpx.HTTPStatusError as exc:
+        raise api_error(exc) from exc
+
+
+@router.post("/leads/{crm_lead_id}/message-deliveries")
+async def record_message_delivery(
+    crm_lead_id: UUID, body: SimulatedDeliveryRequest, actor: Operator, settings: Config
+) -> Any:
+    try:
+        return await CrmStore(settings).rpc(
+            "record_simulated_message_delivery",
+            {
+                "p_payload": {
+                    **body.model_dump(mode="json"),
+                    "actor_id": str(actor.id),
+                    "crm_lead_id": str(crm_lead_id),
+                }
+            },
+        )
+    except httpx.HTTPStatusError as exc:
+        try:
+            if exc.response.json().get("code") == "23505":
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    "Este borrador ya tiene una entrega simulada registrada.",
+                ) from exc
+        except (ValueError, AttributeError):
+            pass
+        raise api_error(exc) from exc
 
 
 @router.post("/leads/{crm_lead_id}/qualify")
@@ -307,10 +383,14 @@ async def approve_follow_up_draft(
     try:
         return await CrmStore(settings).rpc(
             "approve_crm_follow_up_draft",
-            {"p_payload": {
-                **body.model_dump(), "actor_id": str(actor.id), "draft_id": str(draft_id),
-                "content_checksum": review.checksum,
-            }},
+            {
+                "p_payload": {
+                    **body.model_dump(),
+                    "actor_id": str(actor.id),
+                    "draft_id": str(draft_id),
+                    "content_checksum": review.checksum,
+                }
+            },
         )
     except httpx.HTTPStatusError as exc:
         raise api_error(exc) from exc

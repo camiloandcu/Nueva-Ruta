@@ -165,7 +165,7 @@ Default fictional SLA:
 Important behaviors:
 
 - `No Answer` does not auto-send a substantive follow-up; it creates a draft.
-- `Info Sent` requires an approved message or recorded manual action.
+- `Info Sent` requires an approved case-linked message with a separate simulated-delivery event, or a documented manual action. Approval alone is not evidence of delivery.
 - `Transferido` requires a separate explicit transfer approval.
 - `Call Back` requires a future time and timezone.
 - `No le interesa` only sets opt-out when the lead explicitly revoked contact.
