@@ -9,7 +9,8 @@
     "format": "prettier --check .",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/*.mjs"
+    "test": "node --test tests/*.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
@@ -19,6 +20,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "24.10.1",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",

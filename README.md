@@ -42,6 +42,7 @@ Keep AI set to `deterministic` for a no-provider demo. Never paste real lead inf
 | `make verify` | Check web, API, n8n, simulator, UI→API, and authenticated SSR smoke paths |
 | `make reset` | Reapply local migrations/seeds and bootstrap synthetic identities |
 | `make test-db` | Run Supabase database integration tests |
+| `pnpm --filter @nueva-ruta/web test:e2e` | Run authenticated Chromium case-flow tests against the running local stack |
 | `make quality` | Format, lint, typecheck, Python/UI tests, and repository-boundary checks |
 | `pnpm --dir apps/web build` | Build the Next.js application |
 

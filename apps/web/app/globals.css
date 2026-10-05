@@ -284,7 +284,7 @@ code {
   white-space: nowrap;
 }
 
-.intake-panel {
+.panel.intake-panel {
   display: grid;
   grid-template-columns: minmax(200px, 0.9fr) minmax(320px, 1.4fr);
   gap: 1.5rem;
@@ -293,10 +293,10 @@ code {
   border-color: #103e2e;
 }
 
-.intake-panel .section-kicker {
+.panel.intake-panel .section-kicker {
   color: #a6efc4;
 }
-.intake-panel p {
+.panel.intake-panel p {
   color: #cee6d7;
 }
 .intake-controls {

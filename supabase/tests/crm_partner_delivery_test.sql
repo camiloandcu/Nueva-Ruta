@@ -12,6 +12,13 @@ select has_function('public','apply_crm_disposition',array['jsonb'],'disposition
 select has_function('public','approve_partner_transfer',array['jsonb'],'transfer approval command exists');
 select has_function('public','replay_partner_outbox',array['jsonb'],'dead-letter replay command exists');
 
+-- The reset demo prequalifies these cases; this test exercises qualification itself.
+update public.crm_lead_states state
+set commercial_stage = 'new', qualified_by = null, qualified_at = null
+from public.leads lead
+where lead.id = state.baseline_lead_id
+  and lead.business_id in ('LEAD-017', 'LEAD-018', 'LEAD-019');
+
 select lives_ok($$
   select public.qualify_crm_lead(jsonb_build_object(
     'actor_id',(select id from public.app_users where role='operator' and active limit 1),

@@ -115,4 +115,10 @@ revoke all on function public.reset_synthetic_baseline(uuid,text,text,text)
   from public,anon,authenticated;
 grant execute on function public.reset_synthetic_baseline(uuid,text,text,text) to service_role;
 
-select private.seed_demo_workflow_evidence();
+-- Fresh local migrations run before seed.sql creates CR-001.
+-- Existing populated demos still receive the examples on upgrade.
+do $$ begin
+  if exists (select 1 from public.creators where business_id = 'CR-001') then
+    perform private.seed_demo_workflow_evidence();
+  end if;
+end $$;

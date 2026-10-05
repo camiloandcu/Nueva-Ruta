@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 
 type Lead = {
   source_event_id: string;
+  crm_lead_id: string;
+  business_id: string;
   external_event_id: string;
   decision_id: string;
   received_at: string;
@@ -120,10 +122,11 @@ export default function ReviewQueue() {
     setLeads(nextLeads);
     setDrafts((await draftResponse.json()) as Draft[]);
     const requested = new URLSearchParams(window.location.search).get("lead");
-    setSelectedId(
-      (current) =>
-        current ?? requested ?? nextLeads[0]?.source_event_id ?? null,
-    );
+    setSelectedId((current) => {
+      if (current && nextLeads.some((lead) => lead.source_event_id === current))
+        return current;
+      return requested ?? nextLeads[0]?.source_event_id ?? null;
+    });
     setError("");
     setLoading(false);
   }, []);
@@ -134,6 +137,9 @@ export default function ReviewQueue() {
   }, [load]);
 
   const selected = leads.find((lead) => lead.source_event_id === selectedId);
+  const requestedLead = new URLSearchParams(
+    typeof window === "undefined" ? "" : window.location.search,
+  ).get("lead");
   const selectedDrafts = drafts.filter(
     (draft) => draft.decision_id === selected?.decision_id,
   );
@@ -272,7 +278,8 @@ export default function ReviewQueue() {
           <strong>{decisions[result.decision] ?? result.decision}</strong>
           <span>{reasons[result.reason_code] ?? result.reason_code}</span>
           <small>
-            Lead {result.lead_id} · correlación {result.correlation_id}
+            {leads.find((lead) => lead.source_event_id === result.lead_id)
+              ?.business_id ?? "Caso en registro"}
           </small>
           <small>
             Asistencia: {result.ai_attempt_status} · {result.normalized_reason}
@@ -314,7 +321,7 @@ export default function ReviewQueue() {
                 aria-pressed={selectedId === lead.source_event_id}
               >
                 <span className="inbox-item-top">
-                  <strong>{lead.external_event_id}</strong>
+                  <strong>{lead.business_id}</strong>
                   <small>{dateText(lead.received_at)}</small>
                 </span>
                 <span>{lead.redacted_body}</span>
@@ -338,9 +345,16 @@ export default function ReviewQueue() {
             )}
           </div>
           {!selected ? (
-            <p>Selecciona una entrada para revisar su evidencia.</p>
+            <p role={requestedLead ? "alert" : undefined}>
+              {requestedLead
+                ? "La entrada solicitada no está disponible. Selecciona otra de la bandeja."
+                : "Selecciona una entrada para revisar su evidencia."}
+            </p>
           ) : (
             <>
+              <p className="case-identity">
+                Caso <strong>{selected.business_id}</strong>
+              </p>
               <p className="case-message">“{selected.redacted_body}”</p>
               <dl className="evidence-grid">
                 <div>
@@ -354,12 +368,6 @@ export default function ReviewQueue() {
                   </dd>
                 </div>
                 <div>
-                  <dt>Lead ID</dt>
-                  <dd>
-                    <code>{selected.source_event_id}</code>
-                  </dd>
-                </div>
-                <div>
                   <dt>Decisión</dt>
                   <dd>{decisions[selected.decision] ?? selected.decision}</dd>
                 </div>
@@ -369,13 +377,16 @@ export default function ReviewQueue() {
                     {reasons[selected.reason_code] ?? selected.reason_code}
                   </dd>
                 </div>
-                <div>
-                  <dt>Correlación</dt>
-                  <dd>
-                    <code>{selected.correlation_id}</code>
-                  </dd>
-                </div>
               </dl>
+              <details>
+                <summary>Identificadores de auditoría</summary>
+                <p>
+                  ID de entrada: <code>{selected.source_event_id}</code>
+                </p>
+                <p>
+                  Correlación: <code>{selected.correlation_id}</code>
+                </p>
+              </details>
               {selected.redaction_types.length > 0 && (
                 <p className="inline-message">
                   Contenido sensible redactado:{" "}
@@ -421,6 +432,13 @@ export default function ReviewQueue() {
                       La aprobación registra evidencia; la entrega de contenido
                       sustantivo requiere otra acción.
                     </small>
+                    {draft.status === "approved" && (
+                      <Link
+                        href={`/operations/crm?lead=${selected.crm_lead_id}`}
+                      >
+                        Continuar este caso en CRM →
+                      </Link>
+                    )}
                   </div>
                 ))
               ) : selected.decision === "escalate_human" ? (
@@ -436,7 +454,9 @@ export default function ReviewQueue() {
               )}
               <div className="related-links">
                 <Link href="/rules">Ver reglas →</Link>
-                <Link href="/operations/crm">Abrir CRM →</Link>
+                <Link href={`/operations/crm?lead=${selected.crm_lead_id}`}>
+                  Abrir este caso en CRM →
+                </Link>
                 <Link href="/operations/ai">Ver ejecuciones →</Link>
               </div>
             </>

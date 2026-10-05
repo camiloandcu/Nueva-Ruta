@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 type Lead = {
   id: string;
   business_id: string;
+  source_event_id: string | null;
   commercial_stage: string;
   fictional_phone: string | null;
   opted_out: boolean | null;
@@ -77,6 +79,7 @@ export default function CrmOperations() {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [dispositions, setDispositions] = useState<DispositionEvent[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState("");
+  const [requestedLeadId, setRequestedLeadId] = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState("");
   const [message, setMessage] = useState("");
   const [mode, setMode] = useState("success");
@@ -101,12 +104,10 @@ export default function CrmOperations() {
     if (responses[0].ok) {
       const loaded = (await responses[0].json()) as Lead[];
       setLeads(loaded);
+      const requested = new URLSearchParams(window.location.search).get("lead");
+      setRequestedLeadId(requested);
       setSelectedLeadId(
-        (current) =>
-          current ||
-          loaded.find((lead) => lead.business_id === "LEAD-017")?.id ||
-          loaded[0]?.id ||
-          "",
+        (current) => current || requested || loaded[0]?.id || "",
       );
     }
     if (responses[1].ok) setEscalations(await responses[1].json());
@@ -124,7 +125,10 @@ export default function CrmOperations() {
   }, [load, refreshKey]);
 
   const filteredLeads = leads.filter(
-    (lead) => !stageFilter || lead.commercial_stage === stageFilter,
+    (lead) =>
+      lead.id === selectedLeadId ||
+      !stageFilter ||
+      lead.commercial_stage === stageFilter,
   );
   const selectedLead = leads.find((lead) => lead.id === selectedLeadId);
   const selectedHistory = dispositions.filter(
@@ -203,14 +207,7 @@ export default function CrmOperations() {
             Etapa
             <select
               value={stageFilter}
-              onChange={(event) => {
-                const stage = event.target.value;
-                setStageFilter(stage);
-                const first = leads.find(
-                  (lead) => !stage || lead.commercial_stage === stage,
-                );
-                if (first) setSelectedLeadId(first.id);
-              }}
+              onChange={(event) => setStageFilter(event.target.value)}
             >
               <option value="">Todas</option>
               {[...new Set(leads.map((lead) => lead.commercial_stage))].map(
@@ -226,7 +223,14 @@ export default function CrmOperations() {
             Lead
             <select
               value={selectedLeadId}
-              onChange={(event) => setSelectedLeadId(event.target.value)}
+              onChange={(event) => {
+                setSelectedLeadId(event.target.value);
+                window.history.replaceState(
+                  null,
+                  "",
+                  `?lead=${event.target.value}`,
+                );
+              }}
             >
               {filteredLeads.map((lead) => (
                 <option key={lead.id} value={lead.id}>
@@ -249,11 +253,29 @@ export default function CrmOperations() {
               <article key={lead.id} className="evidence-card">
                 <strong>{lead.business_id}</strong>
                 <span className="badge">{lead.commercial_stage}</span>
+                {lead.source_event_id && (
+                  <Link
+                    href={`/operations/review?lead=${lead.source_event_id}`}
+                  >
+                    Ver entrada de este caso →
+                  </Link>
+                )}
                 {lead.redacted_body && <p>{lead.redacted_body}</p>}
                 <p>Teléfono: {lead.fictional_phone ?? "No disponible"}</p>
                 {lead.opted_out && (
                   <p>Contacto revocado · transferencia bloqueada</p>
                 )}
+                <details>
+                  <summary>Identificadores de auditoría</summary>
+                  <p>
+                    ID del caso: <code>{lead.id}</code>
+                  </p>
+                  {lead.source_event_id && (
+                    <p>
+                      ID de entrada: <code>{lead.source_event_id}</code>
+                    </p>
+                  )}
+                </details>
                 {["new", "under_review"].includes(lead.commercial_stage) &&
                   !lead.opted_out && (
                     <button
@@ -334,7 +356,13 @@ export default function CrmOperations() {
                 </button>
               </article>
             ))}
-          {!selectedLead && <p>Selecciona un lead para continuar.</p>}
+          {!selectedLead && (
+            <p role={requestedLeadId ? "alert" : undefined}>
+              {requestedLeadId
+                ? "El caso solicitado no está disponible. Selecciona otro caso de la lista."
+                : "Selecciona un lead para continuar."}
+            </p>
+          )}
           <div className="audit-section" id="audit">
             <h3>Historial de disposiciones</h3>
             {selectedHistory.length === 0 && (
