@@ -1,6 +1,6 @@
 # Case identity and navigation verification
 
-Status: implemented locally on `feat/demo-ux-email-criteria`, 2026-10-05. Hosted rollout remains separate.
+Status: implemented locally and deployed to the temporary demo from `feat/demo-ux-email-criteria`, 2026-10-05.
 
 ## Change
 
@@ -19,4 +19,4 @@ Status: implemented locally on `feat/demo-ux-email-criteria`, 2026-10-05. Hosted
 
 ## Limits
 
-No hosted migration or Railway deployment is claimed here. The hosted reported case still needs the migration and web release before its displayed UUID changes. The next work item handles the approved draft picker and distinct simulated delivery evidence.
+The hosted migration was applied through the Supabase MCP on 2026-10-05. A read-only query verified that the reported event now has label `LEAD-054` and retains its CRM UUID. Railway deployed the corresponding web/API commit from the same branch. The next change's verification report covers the approved draft and distinct simulated delivery evidence.
