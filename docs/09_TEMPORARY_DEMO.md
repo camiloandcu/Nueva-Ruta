@@ -1,6 +1,6 @@
 # Temporary Hosted Demo Operations
 
-Status: setup is conditional on verified provider costs staying within the approved USD 7 total ceiling. Local Supabase + Compose remains authoritative.
+Status: hosted demo is active for the approved temporary window and must be shut down by 2026-10-09 23:59 America/Bogota. Local Supabase + Compose remains authoritative.
 
 ## Hard constraints
 
@@ -14,14 +14,14 @@ Status: setup is conditional on verified provider costs staying within the appro
 
 ## Provisioning gate
 
-Before starting workloads or database provisioning, record read-only provider account/plan state, project cost preview, chosen organization/workspace, projected compute/storage/network charges, and expected duration. If anything needed to establish the total is unknown or the ceiling cannot be enforced, stop before billable provisioning and report the blocker. Do not infer that a free tier means zero total cost without checking account billing state.
+For this demo the user explicitly directed us to proceed on the 30-day USD 5 trial within a USD 7 total ceiling. Railway does not expose a hard limit at that amount (minimum USD 10); the exception is documented and requires ongoing usage checks. Do not upgrade, incur overage, or continue if the USD 7 allowance is at risk. Do not infer that a free tier means zero total cost.
 
 ## Actual resource ledger
 
 | Provider/resource        | Identifier (private ops only)                        | State                 | Cost evidence                                                                                                                                                                | Last checked |
 | ------------------------ | ---------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| Railway project/services | Private project `Influgain WI-009 Demo`; no services | No workloads deployed | User-confirmed USD 5 / 30-day trial; CLI workspace usage and estimated bill were USD 0. Workspace hard-limit minimum is USD 10, so no strict USD 7 enforcement is available. | 2026-10-05   |
-| Supabase Cloud project   | `influgain-wi009-demo`, `sa-east-1`                  | Created and paused    | Connected organization quote: USD 0/month for project creation; paused before migrations/seeds.                                                                              | 2026-10-05   |
+| Railway project/services | Private project `Influgain WI-009 Demo`, environment `demo` | Four app services deployed; web is the only public entrypoint | Last readable CLI snapshot: USD 0.0006 current usage/current bill; USD 0.0003 estimated. Account is on user-confirmed USD 5 / 30-day trial. No hard limit; minimum is USD 10, so the USD 7 ceiling cannot be mechanically enforced. CLI refresh later failed because OAuth token persistence is blocked by the read-only home directory. | 2026-10-05 |
+| Supabase Cloud project   | `influgain-wi009-demo`, `sa-east-1`                  | Active, migrations and synthetic baseline applied | Organization project-creation quote was USD 0/month. Verify current billing again before shutdown. | 2026-10-05 |
 
 Do not place service keys, operator passwords, or full secret values in this ledger. Record only non-secret identifiers and redacted amounts/statuses in private implementation notes.
 
@@ -37,4 +37,4 @@ By 2026-10-09 23:59 America/Bogota:
 
 ## Current state
 
-The user confirmed the Railway workspace has a 30-day USD 5 trial and asked us to proceed. We created a private Railway project (no services or deployments) and a Supabase project in `sa-east-1`; the Supabase project is paused. Railway has USD 0 current usage/bill and no hard limit. Its minimum compute hard limit is USD 10, so the exact USD 7 ceiling cannot be mechanically enforced. The Supabase MCP provides the publishable key but not the server-only service-role key required by FastAPI. We stopped before deploying, migrating, or seeding anything; no runtime services are running and no hosted data has been copied.
+The user confirmed the Railway workspace has a 30-day USD 5 trial and asked us to proceed within a USD 7 ceiling. The Railway project has four services (`web`, `api`, `simulator`, `n8n`) with small limits, one replica each and serverless sleep enabled. Only `https://web-demo-ffe2.up.railway.app` is public; the other services use private networking. The Supabase Cloud project is active in `sa-east-1`; 14 tracked migrations and the synthetic fixture baseline are applied. Public signup is disabled, Auth redirects are restricted to the web domain, and three synthetic role accounts are available for private handoff. No production/customer data or OpenAI key is configured. Hosted login/logout and report access are verified. The exact USD 7 ceiling is not enforceable as a provider hard limit; the last CLI usage snapshot was only USD 0.0006, but future spend still requires monitoring. By October 9, 2026, stop Railway services, pause Supabase, verify public unavailability, and record final usage without deleting the project/data.
