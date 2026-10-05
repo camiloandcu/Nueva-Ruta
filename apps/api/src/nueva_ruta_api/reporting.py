@@ -122,8 +122,6 @@ def _stalled_item(
     }
     if start is None:
         return {**common, "age": None, "age_unit": unit, "status": "missing_evidence"}
-    elapsed = _elapsed(start, as_of, unit, rule["content"])
-    assert elapsed is not None
     callback = unit == "scheduled_time"
     if callback:
         scheduled = _instant(due_at)
@@ -141,6 +139,8 @@ def _stalled_item(
         else:
             status_value = "within"
     else:
+        elapsed = _elapsed(start, as_of, unit, rule["content"])
+        assert elapsed is not None
         common["age"] = round(elapsed, 2)
         common["age_unit"] = unit
         if elapsed >= threshold:

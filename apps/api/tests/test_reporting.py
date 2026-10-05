@@ -200,3 +200,46 @@ def test_empty_report_keeps_zero_counts_and_unavailable_conversion_rates() -> No
         "next_offset": None,
         "previous_offset": None,
     }
+
+
+def test_callback_scheduled_stall_uses_due_time_not_an_elapsed_unit() -> None:
+    facts = {
+        "active_rule": {"id": "rule-v2", "version": 2, "content": RULE},
+        "leads": [
+            {
+                "crm_lead_id": "lead-callback",
+                "business_id": "LEAD-CALLBACK",
+                "received_at": "2026-09-15T16:00:00Z",
+                "commercial_stage": "callback_scheduled",
+                "stage_updated_at": "2026-09-15T16:00:00Z",
+                "callback_at": "2026-09-15T17:10:00Z",
+            }
+        ],
+        "transfers": [],
+        "imports": [],
+        "enrollments": [],
+        "reconciliations": [],
+        "normalized_quality": [],
+        "decisions": [],
+        "drafts": [],
+        "follow_up_drafts": [],
+        "escalations": [],
+        "dispositions": [],
+        "outbox": [],
+        "delivery_attempts": [],
+    }
+
+    result = build_operational_report(
+        facts,
+        start_date=None,
+        end_date=None,
+        creator=None,
+        channel=None,
+        state=None,
+        as_of=AS_OF,
+    )
+
+    callback = next(item for item in result["stalled"] if item["reason"] == "callback_scheduled")
+    assert callback["status"] == "approaching"
+    assert callback["age_unit"] == "minutes_after_due"
+    assert callback["age"] == 0
