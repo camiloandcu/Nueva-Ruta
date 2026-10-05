@@ -19,6 +19,26 @@ test("the Supabase server client is isolated to authentication", () => {
   assert.doesNotMatch(client, /\.from\(|\.rpc\(/);
 });
 
+test("the demo login uses Supabase password auth without public signup", () => {
+  const login = readFileSync(
+    new URL("../app/login/page.tsx", import.meta.url),
+    "utf8",
+  );
+  const actions = readFileSync(
+    new URL("../app/login/actions.ts", import.meta.url),
+    "utf8",
+  );
+  const layout = readFileSync(
+    new URL("../app/layout.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(login, /action=\{signIn\}/);
+  assert.match(actions, /signInWithPassword/);
+  assert.doesNotMatch(actions, /\.signUp\(/);
+  assert.match(actions, /supabase\.auth\.signOut\(\)/);
+  assert.match(layout, /Cerrar sesión/);
+});
+
 test("rule operations flow through authenticated FastAPI proxy", () => {
   const proxy = readFileSync(
     new URL("../app/api/rules/[...path]/route.ts", import.meta.url),

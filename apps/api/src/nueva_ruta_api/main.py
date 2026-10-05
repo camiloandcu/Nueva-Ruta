@@ -74,7 +74,10 @@ app.include_router(crm_router)
 async def check_supabase_auth(settings: Settings) -> tuple[bool, str]:
     try:
         async with httpx.AsyncClient(timeout=settings.request_timeout_seconds) as client:
-            response = await client.get(settings.auth_health_url)
+            response = await client.get(
+                settings.auth_health_url,
+                headers={"apikey": settings.supabase_anon_key},
+            )
         if response.is_success:
             return True, "ready"
         return False, f"unexpected_status_{response.status_code}"

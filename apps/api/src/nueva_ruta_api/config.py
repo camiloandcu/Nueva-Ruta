@@ -50,9 +50,5 @@ class Settings:
 
     @property
     def service_role_headers(self) -> dict[str, str]:
-        """Build Supabase admin headers for legacy JWT or new secret API keys."""
         key = self.supabase_service_role_key
-        headers = {"apikey": key}
-        if not key.startswith("sb_secret_"):
-            headers["Authorization"] = f"Bearer {key}"
-        return headers
+        return {"apikey": key, "Authorization": f"Bearer {key}"}

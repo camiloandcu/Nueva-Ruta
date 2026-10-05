@@ -13,6 +13,62 @@ body {
   margin: 0;
 }
 
+.site-header {
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem max(1rem, calc((100% - 1180px) / 2));
+  border-bottom: 1px solid #d8d3c5;
+  background: #fffdf8;
+}
+
+.site-header form {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.site-header button,
+.auth-form button {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #17332d;
+  border-radius: 0.4rem;
+  background: #17332d;
+  color: #fff;
+  cursor: pointer;
+}
+
+.auth-shell {
+  width: min(480px, calc(100% - 2rem));
+}
+
+.auth-form {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.auth-form input {
+  min-height: 2.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #b9b4a7;
+  border-radius: 0.4rem;
+  background: #fff;
+  color: inherit;
+}
+
+.auth-error {
+  color: #762912;
+}
+
 main {
   width: min(760px, calc(100% - 2rem));
   margin: 5rem auto;

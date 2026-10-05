@@ -22,6 +22,44 @@ async def test_readiness_identifies_missing_configuration(monkeypatch: MonkeyPat
     assert payload["dependencies"]["supabase_auth"] == "missing_configuration"
 
 
+@pytest.mark.asyncio
+async def test_readiness_checks_supabase_with_publishable_api_key(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    class HealthyResponse:
+        status_code = 200
+
+        @property
+        def is_success(self) -> bool:
+            return True
+
+    class HealthyClient:
+        def __init__(self, **_: object) -> None:
+            pass
+
+        async def __aenter__(self) -> "HealthyClient":
+            return self
+
+        async def __aexit__(self, *_: object) -> None:
+            pass
+
+        async def get(self, url: str, *, headers: dict[str, str]) -> HealthyResponse:
+            assert url == "https://supabase.invalid/auth/v1/health"
+            assert headers == {"apikey": "publishable-test"}
+            return HealthyResponse()
+
+    monkeypatch.setenv("SUPABASE_URL", "https://supabase.invalid")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "publishable-test")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-test")
+    monkeypatch.setattr(main.httpx, "AsyncClient", HealthyClient)
+
+    response = Response()
+    payload = await main.readiness(response)
+
+    assert response.status_code == 200
+    assert payload["dependencies"]["supabase_auth"] == "ready"
+
+
 def test_request_log_has_correlation_and_no_query_or_payload(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
