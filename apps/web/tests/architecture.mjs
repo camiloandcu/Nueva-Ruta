@@ -183,14 +183,17 @@ test("WI-008 creator planning uses safe authenticated API contracts and role-gat
     new URL("../app/operations/creators/planning.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(planning, /\/api\/operations\/creators/);
+  assert.match(planning, /request<Creator\[]>\("creators"\)/);
   assert.match(planning, /content\/sources\/ranking/);
   assert.match(planning, /content\/scripts/);
   assert.match(planning, /creator-content\/access/);
-  assert.match(planning, /access\.can_author/);
-  assert.match(planning, /access\.can_review/);
-  assert.match(planning, /Prioridad descriptiva/);
-  assert.match(planning, /No hay acciones de publicación\s+o programación/);
+  assert.match(planning, /access\.data\?\.can_author/);
+  assert.match(planning, /access\.data\?\.can_review/);
+  assert.match(
+    planning,
+    /loadAccess\(\)[\s\S]*loadCreators\(\)[\s\S]*loadSources\(\)[\s\S]*loadScripts\(\)/,
+  );
+  assert.match(planning, /No se pudieron cargar/);
   assert.match(planning, /script_selectable/);
   assert.match(planning, /latest\.review\?\.reason/);
   assert.doesNotMatch(

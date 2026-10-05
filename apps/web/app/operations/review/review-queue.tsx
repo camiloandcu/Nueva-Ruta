@@ -27,6 +27,11 @@ type Result = {
   decision: string;
   reason_code: string;
   correlation_id: string;
+  ai_attempt_status: string;
+  failure_layer: string;
+  normalized_reason: string;
+  draft_id: string | null;
+  escalation_id: string | null;
 };
 
 const examples = [
@@ -88,7 +93,8 @@ export default function ReviewQueue() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [exampleId, setExampleId] = useState<string>("complete");
+  const [channel, setChannel] = useState<"ctwa" | "organic">("ctwa");
+  const [messageText, setMessageText] = useState<string>(examples[0].message);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [result, setResult] = useState<Result | null>(null);
   const [message, setMessage] = useState("");
@@ -131,9 +137,12 @@ export default function ReviewQueue() {
   const selectedDrafts = drafts.filter(
     (draft) => draft.decision_id === selected?.decision_id,
   );
-  const example = examples.find((item) => item.id === exampleId) ?? examples[0];
-
   async function ingest() {
+    const message = messageText.trim();
+    if (!message) {
+      setMessage("Escribe un mensaje antes de procesarlo.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     const id = crypto.randomUUID();
@@ -144,13 +153,11 @@ export default function ReviewQueue() {
         body: JSON.stringify({
           source_event_id: "web-" + id,
           inbound_at: new Date().toISOString(),
-          channel: example.channel,
+          channel,
           source_detail:
-            example.channel === "ctwa"
-              ? "Anuncio de creador"
-              : "Entrada directa",
-          creator_business_id: example.channel === "ctwa" ? "CR-001" : null,
-          message: example.message,
+            channel === "ctwa" ? "Anuncio de creador" : "Entrada directa",
+          creator_business_id: channel === "ctwa" ? "CR-001" : null,
+          message,
           fictional_phone: "+15550185",
           consent: {
             status: "granted",
@@ -212,26 +219,48 @@ export default function ReviewQueue() {
           <span className="section-kicker">01 · Entrada y decisión</span>
           <h2>Procesar un mensaje nuevo</h2>
           <p>
-            Elige un caso y observa cómo queda registrado, clasificado y
-            asignado.
+            Escribe una consulta realista o carga un caso rápido. La entrada se
+            registra, se clasifica y conserva su trazabilidad.
           </p>
         </div>
         <div className="intake-controls">
-          <label>
-            Caso
+          <label className="intake-channel">
+            Origen
             <select
-              value={exampleId}
-              onChange={(event) => setExampleId(event.target.value)}
+              value={channel}
+              onChange={(event) =>
+                setChannel(event.target.value as "ctwa" | "organic")
+              }
             >
-              {examples.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
+              <option value="ctwa">Anuncio de creador</option>
+              <option value="organic">Entrada directa</option>
             </select>
           </label>
-          <div className="message-preview" aria-label="Mensaje entrante">
-            “{example.message}”
+          <label className="intake-message">
+            Mensaje entrante
+            <textarea
+              value={messageText}
+              maxLength={4000}
+              rows={4}
+              onChange={(event) => setMessageText(event.target.value)}
+              placeholder="Escribe el mensaje que quieres procesar…"
+            />
+          </label>
+          <div className="quick-cases" aria-label="Casos rápidos">
+            <span>Casos rápidos</span>
+            {examples.map((item) => (
+              <button
+                type="button"
+                className="secondary-button"
+                key={item.id}
+                onClick={() => {
+                  setChannel(item.channel);
+                  setMessageText(item.message);
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
           <button disabled={busy} onClick={() => void ingest()}>
             {busy ? "Procesando…" : "Ingresar mensaje"}
@@ -244,6 +273,9 @@ export default function ReviewQueue() {
           <span>{reasons[result.reason_code] ?? result.reason_code}</span>
           <small>
             Lead {result.lead_id} · correlación {result.correlation_id}
+          </small>
+          <small>
+            Asistencia: {result.ai_attempt_status} · {result.normalized_reason}
           </small>
         </section>
       )}

@@ -140,12 +140,14 @@ export default function CrmOperations() {
     const result = await response.json();
     setMessage(
       response.ok
-        ? result.prior_stage && result.commercial_stage
-          ? "Disposición registrada: " +
-            result.prior_stage +
-            " → " +
-            result.commercial_stage
-          : "Acción registrada. La evidencia se actualizó."
+        ? result.lifecycle_state
+          ? `Estado de la escalación actualizado: ${result.lifecycle_state}.`
+          : result.prior_stage && result.commercial_stage
+            ? "Disposición registrada: " +
+              result.prior_stage +
+              " → " +
+              result.commercial_stage
+            : "Acción registrada. La evidencia se actualizó."
         : "No se aplicó: " +
             (typeof result.detail === "string"
               ? result.detail
@@ -355,82 +357,156 @@ export default function CrmOperations() {
           </div>
         </section>
 
-        <section className="panel" id="escalations">
-          <span className="section-kicker">
-            03 · Seguimiento y recuperación
-          </span>
-          <h2>Escalaciones</h2>
+        <section className="panel crm-operations-panel" id="escalations">
+          <span className="section-kicker">03 · Resolver y recuperar</span>
+          <h2>Escalaciones activas</h2>
+          <p>
+            Cada caso muestra su estado actual y una única acción principal. Las
+            acciones de supervisión están separadas al final de la tarjeta.
+          </p>
           {escalations.map((task) => (
-            <article key={task.id} className="evidence-card">
-              <strong>
-                {task.reason_code} · {task.priority}
-              </strong>
+            <article key={task.id} className="escalation-card">
+              <div className="section-heading">
+                <div>
+                  <span className="section-kicker">{task.priority}</span>
+                  <h3>{task.reason_code}</h3>
+                </div>
+                <span className="badge">{task.lifecycle_state}</span>
+              </div>
               <p>{task.redacted_summary}</p>
-              <p>
-                Estado: {task.lifecycle_state} · vence{" "}
-                {new Date(task.due_at).toLocaleString()}
-              </p>
+              <dl className="escalation-meta">
+                <div>
+                  <dt>Vence</dt>
+                  <dd>{new Date(task.due_at).toLocaleString()}</dd>
+                </div>
+                <div>
+                  <dt>Asignación</dt>
+                  <dd>{task.owner_id ? "Caso asignado" : "Sin asignar"}</dd>
+                </div>
+              </dl>
               {task.sla_breached && (
                 <span className="badge badge-escalate_human">SLA vencido</span>
               )}
-              <button
-                onClick={() =>
-                  void command(`escalations/${task.id}/actions`, {
-                    action: "claim",
-                    correlation_id: `crm-${crypto.randomUUID()}`,
-                  })
-                }
-              >
-                Tomar caso
-              </button>
-              <label>
-                Asignar a
-                <select
-                  defaultValue=""
-                  onChange={(event) => {
-                    if (event.target.value)
-                      void command(`escalations/${task.id}/actions`, {
-                        action: "assign",
-                        owner_id: event.target.value,
-                        correlation_id: `crm-${crypto.randomUUID()}`,
-                      });
-                  }}
+              {task.lifecycle_state === "pending" && (
+                <button
+                  className="primary-action"
+                  onClick={() =>
+                    void command(`escalations/${task.id}/actions`, {
+                      action: "claim",
+                      correlation_id: `crm-${crypto.randomUUID()}`,
+                    })
+                  }
                 >
-                  <option value="">Seleccionar operador (supervisor)</option>
-                  {team.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.display_name} · {member.role}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                onClick={() =>
-                  void command(`escalations/${task.id}/actions`, {
-                    action: "resolve",
-                    reason: "Revisión completada por el operador",
-                    resolution_action: "request_information",
-                    correlation_id: `crm-${crypto.randomUUID()}`,
-                  })
-                }
-              >
-                Resolver
-              </button>
-              <button
-                onClick={() =>
-                  void command(`escalations/${task.id}/actions`, {
-                    action: "close",
-                    reason: "Cierre por supervisor",
-                    correlation_id: `crm-${crypto.randomUUID()}`,
-                  })
-                }
-              >
-                Cerrar con motivo (supervisor)
-              </button>
+                  Tomar caso
+                </button>
+              )}
+              {task.lifecycle_state === "assigned" && (
+                <button
+                  className="primary-action"
+                  onClick={() =>
+                    void command(`escalations/${task.id}/actions`, {
+                      action: "claim",
+                      correlation_id: `crm-${crypto.randomUUID()}`,
+                    })
+                  }
+                >
+                  Iniciar revisión
+                </button>
+              )}
+              {task.lifecycle_state === "in_review" && (
+                <form
+                  className="resolution-form"
+                  action={(form) =>
+                    void command(`escalations/${task.id}/actions`, {
+                      action: "resolve",
+                      resolution_action: String(form.get("resolution_action")),
+                      reason: String(form.get("reason")),
+                      correlation_id: `crm-${crypto.randomUUID()}`,
+                    })
+                  }
+                >
+                  <h4>Resolver caso</h4>
+                  <label>
+                    Resultado
+                    <select
+                      name="resolution_action"
+                      defaultValue="request_information"
+                    >
+                      <option value="request_information">
+                        Solicitar información
+                      </option>
+                      <option value="create_draft">Preparar borrador</option>
+                      <option value="transfer_eligibility">
+                        Revisar elegibilidad
+                      </option>
+                      <option value="link_reconciliation">
+                        Vincular conciliación
+                      </option>
+                    </select>
+                  </label>
+                  <label>
+                    Nota de resolución
+                    <input
+                      name="reason"
+                      required
+                      minLength={3}
+                      maxLength={300}
+                    />
+                  </label>
+                  <button className="primary-action" type="submit">
+                    Confirmar resolución
+                  </button>
+                </form>
+              )}
+              {task.lifecycle_state === "resolved" ||
+              task.lifecycle_state === "closed_with_reason" ? (
+                <p className="state-confirmation">
+                  Este caso ya fue resuelto. Su evidencia permanece en el
+                  historial.
+                </p>
+              ) : (
+                <details className="supervisor-actions">
+                  <summary>Acciones de supervisión</summary>
+                  <label>
+                    Asignar responsable
+                    <select
+                      defaultValue=""
+                      onChange={(event) => {
+                        if (event.target.value)
+                          void command(`escalations/${task.id}/actions`, {
+                            action: "assign",
+                            owner_id: event.target.value,
+                            correlation_id: `crm-${crypto.randomUUID()}`,
+                          });
+                      }}
+                    >
+                      <option value="">Seleccionar responsable</option>
+                      {team.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.display_name} · {member.role}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() =>
+                      void command(`escalations/${task.id}/actions`, {
+                        action: "close",
+                        reason: "Cierre supervisado",
+                        correlation_id: `crm-${crypto.randomUUID()}`,
+                      })
+                    }
+                  >
+                    Cerrar con motivo
+                  </button>
+                </details>
+              )}
             </article>
           ))}
 
-          <h2>Recuperación</h2>
+          <h2>Recuperación y entregas</h2>
           {recovery.map((item) => (
             <article key={item.id} className="evidence-card">
               <strong>{item.reason_code}</strong>

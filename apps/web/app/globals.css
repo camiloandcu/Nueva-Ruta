@@ -312,7 +312,44 @@ code {
   font-weight: 650;
 }
 
+.intake-message {
+  grid-column: 1 / -1;
+}
+
+.intake-message textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.quick-cases,
+.workspace-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quick-cases > span {
+  color: #d7e6dd;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.secondary-button,
+.quick-cases .secondary-button,
+.supervisor-actions .secondary-button {
+  min-height: 2.3rem;
+  padding: 0.42rem 0.65rem;
+  border: 1px solid #b7cabd;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #135c40;
+  font: inherit;
+  font-weight: 700;
+}
+
 .intake-controls select,
+.intake-controls textarea,
 .filter-row input,
 .filter-row select,
 .crm-workspace input,
@@ -528,6 +565,262 @@ button:disabled {
 .crm-workspace .evidence-card {
   border-left-color: #16845c;
 }
+
+.crm-operations-panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.escalation-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.1rem;
+  border: 1px solid #d8e3da;
+  border-left: 5px solid #bc673b;
+  border-radius: 0.8rem;
+  background: #fffcf7;
+}
+
+.escalation-card h3,
+.escalation-card h4 {
+  margin: 0.2rem 0;
+}
+
+.escalation-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+}
+
+.escalation-meta dt {
+  color: #65776b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.escalation-meta dd {
+  margin: 0.15rem 0 0;
+  font-weight: 650;
+}
+
+.primary-action {
+  justify-self: start;
+}
+
+.resolution-form,
+.supervisor-actions {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem;
+  border-radius: 0.65rem;
+  background: #f0f6f1;
+}
+
+.resolution-form label,
+.supervisor-actions label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 650;
+}
+
+.supervisor-actions summary {
+  color: #135c40;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.state-confirmation {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 0.55rem;
+  background: #e7f4ea;
+  color: #205d3b;
+}
+
+.content-workspace {
+  gap: 1rem;
+}
+
+.content-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.content-header h2,
+.content-list-panel h2 {
+  margin: 0.25rem 0;
+}
+
+.workspace-tabs button.is-active {
+  min-height: 2.3rem;
+  padding: 0.42rem 0.65rem;
+  border: 1px solid #117c55;
+  border-radius: 0.55rem;
+  background: #117c55;
+  color: #fff;
+  font: inherit;
+  font-weight: 750;
+}
+
+.content-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.summary-card {
+  display: grid;
+  align-content: start;
+  gap: 0.55rem;
+  min-height: 210px;
+  padding: 1.2rem;
+  border: 1px solid #d5dfd8;
+  border-radius: 0.85rem;
+  background: #fff;
+}
+
+.summary-card > span,
+.summary-card p,
+.content-row small,
+.script-card small {
+  color: #586f63;
+}
+
+.summary-card strong {
+  color: #123c2d;
+  font-size: 2.25rem;
+  letter-spacing: -0.06em;
+}
+
+.summary-card p {
+  margin: 0;
+}
+
+.summary-card button {
+  justify-self: start;
+  margin-top: auto;
+}
+
+.content-list-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.content-row,
+.creator-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(140px, 0.35fr);
+  gap: 1rem;
+  align-items: start;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e1e9e3;
+}
+
+.content-row h3,
+.creator-card h3 {
+  margin: 0;
+}
+
+.content-row p,
+.creator-card p {
+  margin: 0.35rem 0;
+}
+
+.content-row > div:last-child {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.rank {
+  color: #0a7650;
+  font-size: 1.15rem;
+  font-weight: 850;
+}
+
+.script-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid #e1e9e3;
+}
+
+.script-card h3,
+.script-card blockquote {
+  margin: 0;
+}
+
+.script-card blockquote {
+  padding: 0.85rem 1rem;
+  border-left: 3px solid #8ab29a;
+  border-radius: 0 0.45rem 0.45rem 0;
+  background: #f3f7f3;
+  line-height: 1.55;
+}
+
+.review-note,
+.load-failure {
+  padding: 0.8rem;
+  border-radius: 0.55rem;
+  background: #fff0df;
+}
+
+.editor-details,
+.review-form {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.5rem;
+  padding: 0.9rem;
+  border-radius: 0.65rem;
+  background: #f0f6f1;
+}
+
+.editor-details summary {
+  color: #135c40;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.editor-details form,
+.review-form {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.editor-details label,
+.review-form label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 650;
+}
+
+.editor-details input,
+.editor-details select,
+.editor-details textarea,
+.review-form input,
+.review-form select {
+  min-height: 2.55rem;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #bfd0c5;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #172924;
+  font: inherit;
+}
+
+.load-failure {
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid #e7b18d;
+}
+
+.load-failure button {
+  justify-self: start;
+}
 .audit-section {
   margin-top: 2rem;
   padding-top: 1rem;
@@ -649,6 +942,11 @@ button:disabled {
   .review-layout,
   .crm-workspace,
   .pipeline-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .content-overview,
+  .content-row,
+  .creator-card {
     grid-template-columns: minmax(0, 1fr);
   }
   .execution-card .evidence-grid {

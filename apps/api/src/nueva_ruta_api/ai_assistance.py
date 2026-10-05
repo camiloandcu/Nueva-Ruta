@@ -33,19 +33,7 @@ class OpenAIAdapter:
         self.settings = settings
 
     async def assist(self, redacted_text: str) -> str:
-        schema = AssistanceOutput.model_json_schema()
-        request_body: dict[str, Any] = {
-            "model": self.settings.openai_model,
-            "input": redacted_text,
-            "text": {
-                "format": {
-                    "type": "json_schema",
-                    "name": "assistance",
-                    "schema": schema,
-                    "strict": True,
-                }
-            },
-        }
+        request_body = assistance_request(self.settings.openai_model, redacted_text)
         if self.settings.openai_model == "gpt-6-luna":
             request_body["reasoning"] = {"effort": "none"}
         async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
@@ -55,8 +43,45 @@ class OpenAIAdapter:
                 json=request_body,
             )
         response.raise_for_status()
-        payload = response.json()
-        return str(payload["output"][0]["content"][0]["text"])
+        return response_text(response.json())
+
+
+def assistance_request(model: str, redacted_text: str) -> dict[str, Any]:
+    """Build a privacy-bounded, schema-constrained assistance request."""
+    return {
+        "model": model,
+        "store": False,
+        "instructions": (
+            "You assist a Spanish-language debt-intake operator. The message has already "
+            "been redacted. Return only the requested schema. Do not promise outcomes, "
+            "give legal or financial advice, request account numbers, or claim a decision "
+            "is final. Suggest a neutral Spanish draft only when it is safe. Deterministic "
+            "policy and human review, not you, control routing and delivery."
+        ),
+        "input": redacted_text,
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": "assistance",
+                "schema": AssistanceOutput.model_json_schema(),
+                "strict": True,
+            }
+        },
+    }
+
+
+def response_text(payload: dict[str, Any]) -> str:
+    """Read structured output without assuming its first output item is text."""
+    output_text = payload.get("output_text")
+    if isinstance(output_text, str) and output_text:
+        return output_text
+    for item in payload.get("output", []):
+        if not isinstance(item, dict):
+            continue
+        for content in item.get("content", []):
+            if isinstance(content, dict) and isinstance(content.get("text"), str):
+                return str(content["text"])
+    raise ValueError("missing_output_text")
 
 
 def validate_output(raw: str, minimum_confidence: float = 0.75) -> AssistanceOutput:

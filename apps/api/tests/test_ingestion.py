@@ -5,7 +5,12 @@ from typing import Any
 
 import httpx
 import pytest
-from nueva_ruta_api.ai_assistance import run_assistance, validate_output
+from nueva_ruta_api.ai_assistance import (
+    assistance_request,
+    response_text,
+    run_assistance,
+    validate_output,
+)
 from nueva_ruta_api.config import Settings
 from nueva_ruta_api.ingestion_models import InboundEvent
 from nueva_ruta_api.ingestion_service import process_event, safe_log_fields
@@ -177,6 +182,16 @@ def test_output_validation_taxonomy(raw: str, reason: str) -> None:
 def test_prohibited_language_is_rejected() -> None:
     with pytest.raises(PermissionError, match="claim_guarantee"):
         validate_output(valid_output(draft="Garantizamos que tu deuda desaparecerá"))
+
+
+def test_openai_request_is_redaction_bounded_and_not_stored() -> None:
+    request = assistance_request("gpt-6-luna", "Tengo [REDACTED_ACCOUNT]")
+    assert request["model"] == "gpt-6-luna"
+    assert request["store"] is False
+    assert "human review" in str(request["instructions"])
+    assert request["text"]["format"]["strict"] is True
+    output = '{"classification":"respond"}'
+    assert response_text({"output_text": output}) == output
 
 
 @pytest.mark.asyncio
