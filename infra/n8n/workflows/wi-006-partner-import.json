@@ -9,7 +9,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://api:8000/v1/partner-imports/{{$json.body.import_job_id}}/process",
+        "url": "={{$env.API_INTERNAL_URL}}/v1/partner-imports/{{$json.body.import_job_id}}/process",
         "sendHeaders": true,
         "headerParameters": {"parameters": [{"name": "Authorization", "value": "={{$json.headers.authorization}}"}, {"name": "X-Correlation-ID", "value": "={{'wi006-import-' + $execution.id}}"}]},
         "options": {"response": {"response": {"neverError": true}}}

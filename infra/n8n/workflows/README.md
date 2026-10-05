@@ -34,6 +34,12 @@ It does not save execution payloads, access Supabase tables, or make analyst
 decisions. Next.js dispatches jobs through the local
 `N8N_PARTNER_IMPORT_WEBHOOK_URL` setting.
 
+The n8n container image imports the tracked exports and activates their private
+webhooks at startup. Its `API_INTERNAL_URL` points to FastAPI (`http://api:8000`
+locally and the Railway private service URL when hosted). Environment access in
+workflow expressions is enabled only for this curated, private instance; do not
+expose its editor publicly or permit unreviewed workflow edits.
+
 ## Export portability and local import check
 
 The tracked JSON files are n8n workflow exports, not credential backups. API

@@ -35,9 +35,10 @@ def request(method: str, path: str, body: dict[str, Any] | None = None, *, prefe
     data = None if body is None else json.dumps(body).encode()
     headers = {
         "apikey": SERVICE_KEY,
-        "Authorization": f"Bearer {SERVICE_KEY}",
         "Content-Type": "application/json",
     }
+    if not SERVICE_KEY.startswith("sb_secret_"):
+        headers["Authorization"] = f"Bearer {SERVICE_KEY}"
     if prefer:
         headers["Prefer"] = prefer
     req = urllib.request.Request(f"{BASE_URL}{path}", data=data, headers=headers, method=method)

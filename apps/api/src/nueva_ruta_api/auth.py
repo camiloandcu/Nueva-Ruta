@@ -51,10 +51,7 @@ async def current_principal(
             role_response = await client.get(
                 f"{settings.rest_url}/app_users",
                 params={"id": f"eq.{user_id}", "active": "eq.true", "select": "email,role"},
-                headers={
-                    "apikey": settings.supabase_service_role_key,
-                    "Authorization": f"Bearer {settings.supabase_service_role_key}",
-                },
+                headers=settings.service_role_headers,
             )
     except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Identity verification failed") from exc

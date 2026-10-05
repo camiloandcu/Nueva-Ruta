@@ -94,6 +94,8 @@ services:
     image: n8nio/n8n:2.41.3
     environment:
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?N8N_ENCRYPTION_KEY is required}
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
       N8N_TEMPLATES_ENABLED: "false"
