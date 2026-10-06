@@ -2,7 +2,7 @@
 
 ## Purpose and mode
 
-AI is optional assistance for redacted structured extraction, summaries and substantive response drafts. Deterministic rules remain authoritative, including obvious classification, opt-out, compliance validation and human gates. Use `AI_PROVIDER=deterministic` for repeatable local/hosted demos and WI-009 load runs; this mode makes no model request and has no model usage charge.
+AI is optional assistance for redacted structured extraction, summaries and substantive response drafts. Deterministic rules remain authoritative, including obvious classification, opt-out, compliance validation and human gates. Use `AI_PROVIDER=deterministic` for repeatable tests and WI-009 load runs; this mode makes no model request and has no model usage charge. The temporary hosted demo can use `AI_PROVIDER=openai` for a limited synthetic walkthrough; every live call consumes provider quota.
 
 An optional provider adapter exists for development evaluation. A configured provider/model does not change the product boundary: all outputs are schema-checked, checked against prohibited claims, and remain drafts. The system must continue to ingest when assistance is unavailable and record whether the path was intentionally skipped, succeeded, failed, or rejected.
 
@@ -20,10 +20,10 @@ Use `correlation_id`, `decision_source`, `ai_attempt_status`, `failure_layer` an
 
 ## Demo checklist
 
-1. Confirm `AI_PROVIDER=deterministic` in the runtime configuration without printing API keys.
+1. Confirm the intended `AI_PROVIDER` mode in the runtime configuration without printing API keys.
 2. Use only fictional fixture text and synthetic identities.
 3. Show a reviewed draft and a deterministic escalation, not an autonomous decision claim.
-4. If demonstrating optional provider failure, use the simulator's deterministic failure mode; do not require a live model call.
+4. If showing the live provider, use one short synthetic message and verify `ai_attempt_status=succeeded` in **Ejecuciones**. Use the simulator's deterministic failure mode when demonstrating fallback.
 5. Before recording, scan terminal/browser output for credentials and close provider dashboards.
 
 This is an engineering usage boundary, not legal advice or production authorization. See [compliance and AI policy](planning/06_COMPLIANCE_AND_AI.md).
