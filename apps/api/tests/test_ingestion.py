@@ -191,13 +191,36 @@ def test_openai_request_is_redaction_bounded_and_not_stored() -> None:
     assert request["store"] is False
     assert "human review" in str(request["instructions"])
     assert request["text"]["format"]["strict"] is True
+    assert "never repeat numbers, dollar amounts or percentages" in request["instructions"]
     schema = request["text"]["format"]["schema"]
     assert schema["required"] == list(schema["properties"])
     fields = schema["properties"]["fields"]
     assert fields["required"] == list(fields["properties"])
     assert schema["properties"]["draft"]["type"] == ["string", "null"]
+    assert schema["properties"]["confidence"]["maximum"] == 1
+    assert fields["properties"]["state"]["pattern"] == "^[A-Z]{2}$"
     output = '{"classification":"respond"}'
     assert response_text({"output_text": output}) == output
+
+
+@pytest.mark.asyncio
+async def test_schema_rejection_identifies_safe_field_without_storing_model_text() -> None:
+    configured = Settings(
+        "http://db",
+        "anon",
+        "service",
+        ai_provider="openai",
+        openai_api_key="test",
+        openai_model="gpt-6-luna",
+    )
+    raw = valid_output(fields={"state": "Texas"})
+    attempt = await run_assistance(configured, "Synthetic inquiry", RawAdapter(raw))
+    assert attempt.normalized_reason == "invalid_schema:fields.state"
+    assert attempt.safe_metadata == {
+        "validation_field": "fields.state",
+        "validation_type": "string_pattern_mismatch",
+    }
+    assert "Texas" not in str(attempt.safe_metadata)
 
 
 @pytest.mark.asyncio

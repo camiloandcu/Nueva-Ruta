@@ -19,13 +19,20 @@ class Attempt:
     normalized_reason: str
     provider: str
     model: str
-    prompt_version: str = "wi004-v1"
+    prompt_version: str = "wi004-v2"
     output: AssistanceOutput | None = None
     safe_metadata: dict[str, Any] | None = None
 
 
 class AssistanceAdapter(Protocol):
     async def assist(self, redacted_text: str) -> str: ...
+
+
+class InvalidAssistanceSchema(ValueError):
+    def __init__(self, field: str, issue_type: str) -> None:
+        super().__init__("invalid_schema" if field == "document" else f"invalid_schema:{field}")
+        self.field = field
+        self.issue_type = issue_type
 
 
 class OpenAIAdapter:
@@ -62,12 +69,16 @@ def assistance_request(model: str, redacted_text: str) -> dict[str, Any]:
                 "type": "object",
                 "additionalProperties": False,
                 "properties": {
-                    "approximate_debt": {"type": ["integer", "null"]},
+                    "approximate_debt": {
+                        "type": ["integer", "null"],
+                        "minimum": 0,
+                        "maximum": 1000000,
+                    },
                     "debt_type": {
                         "type": ["string", "null"],
                         "enum": ["credit_card", "medical", "personal_loan", None],
                     },
-                    "state": nullable_string,
+                    "state": {"type": ["string", "null"], "pattern": "^[A-Z]{2}$"},
                     "preferred_language": {"type": ["string", "null"], "enum": ["es", "en", None]},
                     "preferred_contact_time": nullable_string,
                     "wants_counselor": {"type": ["boolean", "null"]},
@@ -81,7 +92,7 @@ def assistance_request(model: str, redacted_text: str) -> dict[str, Any]:
                     "wants_counselor",
                 ],
             },
-            "confidence": {"type": "number"},
+            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
             "draft": nullable_string,
         },
         "required": ["classification", "summary", "fields", "confidence", "draft"],
@@ -94,7 +105,11 @@ def assistance_request(model: str, redacted_text: str) -> dict[str, Any]:
             "been redacted. Return only the requested schema. Do not promise outcomes, "
             "give legal or financial advice, request account numbers, or claim a decision "
             "is final. Suggest a neutral Spanish draft only when it is safe. Deterministic "
-            "policy and human review, not you, control routing and delivery."
+            "policy and human review, not you, control routing and delivery. "
+            "In draft, never repeat numbers, dollar amounts or percentages from the input; "
+            "keep figures only in the structured extraction fields. Use a two-letter uppercase "
+            "US state code or null, an integer debt amount from 0 to 1000000 or null, and "
+            "confidence between 0 and 1. Keep summary under 500 characters and draft under 1200."
         ),
         "input": redacted_text,
         "text": {
@@ -125,8 +140,25 @@ def response_text(payload: dict[str, Any]) -> str:
 def validate_output(raw: str, minimum_confidence: float = 0.75) -> AssistanceOutput:
     try:
         output = AssistanceOutput.model_validate_json(raw)
-    except (ValidationError, ValueError, json.JSONDecodeError) as exc:
-        raise ValueError("invalid_schema") from exc
+    except ValidationError as exc:
+        first = exc.errors(include_input=False, include_url=False)[0]
+        allowed = {
+            "classification",
+            "summary",
+            "fields",
+            "approximate_debt",
+            "debt_type",
+            "state",
+            "preferred_language",
+            "preferred_contact_time",
+            "wants_counselor",
+            "confidence",
+            "draft",
+        }
+        field = ".".join(str(part) for part in first["loc"] if part in allowed) or "document"
+        raise InvalidAssistanceSchema(field, str(first["type"])) from exc
+    except (ValueError, json.JSONDecodeError) as exc:
+        raise InvalidAssistanceSchema("document", "json_invalid") from exc
     if output.confidence < minimum_confidence:
         raise ValueError("low_confidence")
     if output.draft:
@@ -181,5 +213,14 @@ async def run_assistance(
         )
     except PermissionError as exc:
         return Attempt("rejected", "compliance", str(exc), "openai", settings.openai_model)
+    except InvalidAssistanceSchema as exc:
+        return Attempt(
+            "rejected",
+            "output_validation",
+            str(exc),
+            "openai",
+            settings.openai_model,
+            safe_metadata={"validation_field": exc.field, "validation_type": exc.issue_type},
+        )
     except ValueError as exc:
         return Attempt("rejected", "output_validation", str(exc), "openai", settings.openai_model)
