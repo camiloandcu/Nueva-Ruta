@@ -12,12 +12,41 @@ from nueva_ruta_api.ai_assistance import (
     validate_output,
 )
 from nueva_ruta_api.config import Settings
+from nueva_ruta_api.ingestion_api import redacted_leads
 from nueva_ruta_api.ingestion_models import InboundEvent
 from nueva_ruta_api.ingestion_service import process_event, safe_log_fields
 from nueva_ruta_api.redaction import redact
 from nueva_ruta_api.triage import classify, extract_fields
 
 SETTINGS = Settings("http://db.invalid", "anon", "service")
+
+
+@pytest.mark.asyncio
+async def test_redacted_leads_include_approved_extraction(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Store:
+        async def rows(self, table: str, *, order: str) -> list[dict[str, Any]]:
+            assert table == "operational_redacted_leads"
+            return [{"decision_id": "decision-1"}, {"decision_id": "decision-2"}]
+
+        async def select_rows(
+            self, table: str, *, select: str, filters: dict[str, str]
+        ) -> list[dict[str, Any]]:
+            assert table == "extracted_lead_fields"
+            assert filters == {"decision_id": "in.(decision-1,decision-2)"}
+            return [
+                {
+                    "decision_id": "decision-1",
+                    "approved_fields": {"state": "TX"},
+                    "source": "deterministic",
+                }
+            ]
+
+    monkeypatch.setattr("nueva_ruta_api.ingestion_api.IngestionStore", lambda settings: Store())
+    result = await redacted_leads(None, SETTINGS)  # type: ignore[arg-type]
+    assert result[0]["extracted_fields"] == {"state": "TX"}
+    assert result[0]["extraction_source"] == "deterministic"
+    assert result[1]["extracted_fields"] is None
+    assert result[1]["extraction_source"] is None
 
 
 def event(message: str, event_id: str = "fixture-1") -> InboundEvent:

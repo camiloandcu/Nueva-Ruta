@@ -87,6 +87,14 @@ test("newly ingested cases receive a label and invalid deep links never select a
   await expect(page.locator(".case-identity strong")).toHaveText(
     /^LEAD-\d{3,}$/,
   );
+  const extracted = page.getByRole("region", {
+    name: "Datos detectados del mensaje",
+  });
+  await expect(extracted).toContainText("Aprox. $12,000");
+  await expect(extracted).toContainText("Tarjetas de crédito");
+  await expect(extracted).toContainText("TX");
+  await expect(extracted).toContainText("Una persona debe confirmarlos");
+  await page.screenshot({ path: "/tmp/influgain-extraction.png", fullPage: true });
   const label = await page.locator(".case-identity strong").innerText();
   await page.getByRole("button", { name: "Aprobar sin entregar" }).click();
   await expect(page.getByText("Borrador aprobado y auditado")).toBeVisible();

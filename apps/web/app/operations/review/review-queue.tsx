@@ -16,6 +16,15 @@ type Lead = {
   decision: string;
   reason_code: string;
   correlation_id: string;
+  extracted_fields: {
+    approximate_debt: number | null;
+    debt_type: "credit_card" | "medical" | "personal_loan" | null;
+    state: string | null;
+    preferred_language: "es" | "en" | null;
+    preferred_contact_time: string | null;
+    wants_counselor: boolean | null;
+  } | null;
+  extraction_source: "deterministic" | "ai_assisted" | null;
 };
 type Draft = {
   id: string;
@@ -78,6 +87,11 @@ const reasons: Record<string, string> = {
   explicit_opt_out: "Retiró consentimiento",
   synthetic_sla_fixture: "Revisión de SLA",
 };
+const debtTypeLabels: Record<string, string> = {
+  credit_card: "Tarjetas de crédito",
+  medical: "Deuda médica",
+  personal_loan: "Préstamo personal",
+};
 
 function dateText(value: string) {
   return new Date(value).toLocaleString("es-US", {
@@ -137,6 +151,9 @@ export default function ReviewQueue() {
   }, [load]);
 
   const selected = leads.find((lead) => lead.source_event_id === selectedId);
+  const hasDetectedFields = Object.values(
+    selected?.extracted_fields ?? {},
+  ).some((value) => value !== null);
   const requestedLead = new URLSearchParams(
     typeof window === "undefined" ? "" : window.location.search,
   ).get("lead");
@@ -356,6 +373,82 @@ export default function ReviewQueue() {
                 Caso <strong>{selected.business_id}</strong>
               </p>
               <p className="case-message">“{selected.redacted_body}”</p>
+              <section
+                className="extracted-summary"
+                aria-label="Datos detectados del mensaje"
+              >
+                <div className="section-heading">
+                  <h3>Datos detectados automáticamente</h3>
+                  <span className="badge">
+                    {!hasDetectedFields
+                      ? "Sin datos detectados"
+                      : selected.extraction_source === "ai_assisted"
+                        ? "IA validada"
+                        : selected.extraction_source === "deterministic"
+                          ? "Reglas de extracción"
+                          : "Sin extracción"}
+                  </span>
+                </div>
+                <p>
+                  {hasDetectedFields
+                    ? "Datos aproximados leídos del mensaje. Una persona debe confirmarlos; no determinan elegibilidad."
+                    : "Este mensaje no aportó datos verificables para extraer. La clasificación y el borrador siguen disponibles para revisión."}
+                </p>
+                {hasDetectedFields && (
+                  <dl className="evidence-grid">
+                    <div>
+                      <dt>Monto mencionado</dt>
+                      <dd>
+                        {selected.extracted_fields?.approximate_debt == null
+                          ? "No detectado"
+                          : `Aprox. ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(selected.extracted_fields.approximate_debt)}`}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Tipo de deuda</dt>
+                      <dd>
+                        {selected.extracted_fields?.debt_type
+                          ? debtTypeLabels[selected.extracted_fields.debt_type]
+                          : "No detectado"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Estado mencionado</dt>
+                      <dd>
+                        {selected.extracted_fields?.state ?? "No detectado"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Idioma</dt>
+                      <dd>
+                        {selected.extracted_fields?.preferred_language === "en"
+                          ? "Inglés"
+                          : selected.extracted_fields?.preferred_language ===
+                              "es"
+                            ? "Español"
+                            : "No detectado"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Pidió consejero</dt>
+                      <dd>
+                        {selected.extracted_fields?.wants_counselor === true
+                          ? "Sí"
+                          : selected.extracted_fields?.wants_counselor === false
+                            ? "No"
+                            : "No detectado"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Horario preferido</dt>
+                      <dd>
+                        {selected.extracted_fields?.preferred_contact_time ||
+                          "No detectado"}
+                      </dd>
+                    </div>
+                  </dl>
+                )}
+              </section>
               <dl className="evidence-grid">
                 <div>
                   <dt>Recibido</dt>

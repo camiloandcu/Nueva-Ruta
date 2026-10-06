@@ -53,9 +53,23 @@ async def result(
 
 @router.get("/operational/redacted-leads")
 async def redacted_leads(_: Operator, settings: Config) -> list[dict[str, Any]]:
-    return await IngestionStore(settings).rows(
-        "operational_redacted_leads", order="received_at.desc"
-    )
+    store = IngestionStore(settings)
+    leads = await store.rows("operational_redacted_leads", order="received_at.desc")
+    fields_by_decision: dict[str, dict[str, Any]] = {}
+    decision_ids = [str(lead["decision_id"]) for lead in leads]
+    for offset in range(0, len(decision_ids), 100):
+        batch = decision_ids[offset : offset + 100]
+        rows = await store.select_rows(
+            "extracted_lead_fields",
+            select="decision_id,approved_fields,source",
+            filters={"decision_id": f"in.({','.join(batch)})"},
+        )
+        fields_by_decision.update({str(row["decision_id"]): row for row in rows})
+    for lead in leads:
+        extracted = fields_by_decision.get(str(lead["decision_id"]))
+        lead["extracted_fields"] = extracted["approved_fields"] if extracted else None
+        lead["extraction_source"] = extracted["source"] if extracted else None
+    return leads
 
 
 @router.get("/drafts/pending")

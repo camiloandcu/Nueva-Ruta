@@ -522,6 +522,29 @@ button:disabled {
   background: #f1f5f1;
   font-size: 1.05rem;
 }
+.extracted-summary {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #cbded2;
+  border-radius: 0.75rem;
+  background: #f6faf7;
+}
+.extracted-summary h3 {
+  margin: 0;
+}
+.extracted-summary > p {
+  margin: 0.65rem 0 0;
+  color: #52675d;
+  font-size: 0.9rem;
+}
+.extracted-summary .evidence-grid {
+  margin-bottom: 0;
+}
+.extracted-summary .evidence-grid div {
+  padding: 0.7rem;
+  border-radius: 0.55rem;
+  background: #fff;
+}
 
 .evidence-grid {
   display: grid;
