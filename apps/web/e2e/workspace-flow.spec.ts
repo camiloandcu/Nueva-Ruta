@@ -108,6 +108,27 @@ test("one failed queue retries without hiding the selected case", async ({
   ).toHaveCount(0);
 });
 
+test("header navigation recovers after a temporary API wake-up failure", async ({
+  page,
+}) => {
+  let calls = 0;
+  await page.route(
+    "**/api/operations/creator-content/access",
+    async (route) => {
+      calls += 1;
+      if (calls === 1) {
+        await route.fulfill({ status: 503, body: "Service waking up" });
+        return;
+      }
+      await route.continue();
+    },
+  );
+  await page.goto("/operations/review");
+  const nav = page.getByRole("navigation", { name: "Navegación principal" });
+  await expect(nav.getByRole("link", { name: "Bandeja" })).toBeVisible();
+  expect(calls).toBeGreaterThanOrEqual(2);
+});
+
 test("report filter choices come from the authenticated API", async ({
   page,
 }) => {

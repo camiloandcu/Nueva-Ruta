@@ -43,15 +43,74 @@ const links = [
 export default function AppNavigation() {
   const pathname = usePathname();
   const [access, setAccess] = useState<Access | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [status, setStatus] = useState<"loading" | "ready" | "unavailable">(
+    "loading",
+  );
+  const [retryKey, setRetryKey] = useState(0);
   useEffect(() => {
-    fetch("/api/operations/creator-content/access", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((value: Access | null) => setAccess(value))
-      .catch(() => setAccess(null))
-      .finally(() => setLoaded(true));
-  }, []);
-  if (!loaded || !access) return null;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+
+    async function load() {
+      try {
+        const response = await fetch("/api/operations/creator-content/access", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            setStatus("unavailable");
+            return;
+          }
+          throw new Error("Navigation service unavailable");
+        }
+        const value = (await response.json()) as Access;
+        if (!["operator", "supervisor", "analyst"].includes(value.role)) {
+          setStatus("unavailable");
+          return;
+        }
+        setAccess(value);
+        setStatus("ready");
+      } catch {
+        if (controller.signal.aborted) return;
+        attempts += 1;
+        if (attempts < 8) {
+          timer = setTimeout(load, Math.min(1500 * 2 ** (attempts - 1), 20000));
+        } else {
+          setStatus("unavailable");
+        }
+      }
+    }
+
+    void load();
+    return () => {
+      controller.abort();
+      if (timer) clearTimeout(timer);
+    };
+  }, [retryKey]);
+
+  if (status === "loading") {
+    return (
+      <span className="site-nav-status" role="status">
+        Cargando navegación…
+      </span>
+    );
+  }
+  if (status === "unavailable" || !access) {
+    return (
+      <button
+        className="site-nav-retry"
+        type="button"
+        onClick={() => {
+          setStatus("loading");
+          setRetryKey((key) => key + 1);
+        }}
+      >
+        Reintentar navegación
+      </button>
+    );
+  }
   return (
     <nav className="site-nav" aria-label="Navegación principal">
       {links

@@ -49,6 +49,25 @@ body {
   flex-wrap: wrap;
 }
 
+.site-nav-status,
+.site-nav-retry {
+  flex: 1;
+  text-align: center;
+  font-size: 0.86rem;
+}
+
+.site-nav-status {
+  color: #60736b;
+}
+
+.site-header .site-nav-retry {
+  flex: 0 1 auto;
+  margin: 0 auto;
+  border-color: #b8cec0;
+  background: #f1f7f3;
+  color: #174c36;
+}
+
 .site-nav a {
   padding: 0.55rem 0.72rem;
   border-radius: 0.55rem;

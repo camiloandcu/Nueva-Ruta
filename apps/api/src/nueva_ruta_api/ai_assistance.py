@@ -48,6 +48,44 @@ class OpenAIAdapter:
 
 def assistance_request(model: str, redacted_text: str) -> dict[str, Any]:
     """Build a privacy-bounded, schema-constrained assistance request."""
+    # OpenAI strict schemas require every property, including nullable ones, in
+    # `required`. Keep the request schema small; Pydantic validates the limits
+    # and patterns again before any assisted result is used.
+    nullable_string = {"type": ["string", "null"]}
+    schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "classification": {"type": "string", "enum": ["respond", "ignore", "escalate_human"]},
+            "summary": {"type": "string"},
+            "fields": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "approximate_debt": {"type": ["integer", "null"]},
+                    "debt_type": {
+                        "type": ["string", "null"],
+                        "enum": ["credit_card", "medical", "personal_loan", None],
+                    },
+                    "state": nullable_string,
+                    "preferred_language": {"type": ["string", "null"], "enum": ["es", "en", None]},
+                    "preferred_contact_time": nullable_string,
+                    "wants_counselor": {"type": ["boolean", "null"]},
+                },
+                "required": [
+                    "approximate_debt",
+                    "debt_type",
+                    "state",
+                    "preferred_language",
+                    "preferred_contact_time",
+                    "wants_counselor",
+                ],
+            },
+            "confidence": {"type": "number"},
+            "draft": nullable_string,
+        },
+        "required": ["classification", "summary", "fields", "confidence", "draft"],
+    }
     return {
         "model": model,
         "store": False,
@@ -63,7 +101,7 @@ def assistance_request(model: str, redacted_text: str) -> dict[str, Any]:
             "format": {
                 "type": "json_schema",
                 "name": "assistance",
-                "schema": AssistanceOutput.model_json_schema(),
+                "schema": schema,
                 "strict": True,
             }
         },
@@ -127,7 +165,13 @@ async def run_assistance(
     except httpx.ConnectError:
         return Attempt("failed", "transport", "connection_error", "openai", settings.openai_model)
     except httpx.HTTPStatusError as exc:
-        reasons = {401: "authentication", 403: "authentication", 429: "rate_limit"}
+        reasons = {
+            400: "invalid_request",
+            401: "authentication",
+            403: "authentication",
+            404: "model_unavailable",
+            429: "rate_limit",
+        }
         return Attempt(
             "failed",
             "provider",

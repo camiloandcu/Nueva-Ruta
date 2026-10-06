@@ -151,7 +151,8 @@ async def test_transport_taxonomy(failure: Exception, layer: str, reason: str) -
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "status_code,reason", [(401, "authentication"), (429, "rate_limit"), (503, "provider_5xx")]
+    "status_code,reason",
+    [(400, "invalid_request"), (401, "authentication"), (429, "rate_limit"), (503, "provider_5xx")],
 )
 async def test_provider_taxonomy(status_code: int, reason: str) -> None:
     request = httpx.Request("POST", "https://provider.invalid")
@@ -190,6 +191,11 @@ def test_openai_request_is_redaction_bounded_and_not_stored() -> None:
     assert request["store"] is False
     assert "human review" in str(request["instructions"])
     assert request["text"]["format"]["strict"] is True
+    schema = request["text"]["format"]["schema"]
+    assert schema["required"] == list(schema["properties"])
+    fields = schema["properties"]["fields"]
+    assert fields["required"] == list(fields["properties"])
+    assert schema["properties"]["draft"]["type"] == ["string", "null"]
     output = '{"classification":"respond"}'
     assert response_text({"output_text": output}) == output
 
