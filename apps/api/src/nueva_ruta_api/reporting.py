@@ -19,6 +19,42 @@ LEAD_PROGRESS_STAGES = {
 }
 
 
+def available_filter_options(facts: dict[str, Any]) -> dict[str, list[str]]:
+    """Return supported filters present in the authorized reporting snapshot."""
+    leads = facts.get("leads", [])
+    if not isinstance(leads, list):
+        raise TypeError("reporting leads must be a list")
+    return {
+        "creators": sorted(
+            {
+                value
+                for lead in leads
+                if isinstance(lead, dict)
+                if isinstance(value := lead.get("creator_business_id"), str)
+                and value.startswith("CR-")
+                and len(value) == 6
+                and value[3:].isdigit()
+            }
+        ),
+        "channels": sorted(
+            {
+                value
+                for lead in leads
+                if isinstance(lead, dict)
+                if (value := lead.get("channel")) in {"ctwa", "organic"}
+            }
+        ),
+        "states": sorted(
+            {
+                value
+                for lead in leads
+                if isinstance(lead, dict)
+                if (value := lead.get("state")) in {"CA", "FL", "TX"}
+            }
+        ),
+    }
+
+
 def _instant(value: Any) -> datetime | None:
     if not value:
         return None
@@ -122,8 +158,6 @@ def _stalled_item(
     }
     if start is None:
         return {**common, "age": None, "age_unit": unit, "status": "missing_evidence"}
-    elapsed = _elapsed(start, as_of, unit, rule["content"])
-    assert elapsed is not None
     callback = unit == "scheduled_time"
     if callback:
         scheduled = _instant(due_at)
@@ -141,6 +175,8 @@ def _stalled_item(
         else:
             status_value = "within"
     else:
+        elapsed = _elapsed(start, as_of, unit, rule["content"])
+        assert elapsed is not None
         common["age"] = round(elapsed, 2)
         common["age_unit"] = unit
         if elapsed >= threshold:
@@ -280,17 +316,34 @@ def build_operational_report(
             categories["unmatched"] += 1
 
     case_by_id = {str(case["canonical_enrollment_id"]): case for case in cases}
+    lead_by_baseline = {
+        str(lead["baseline_lead_id"]): lead
+        for lead in facts["leads"]
+        if lead.get("baseline_lead_id")
+    }
+    import_by_id = {str(job["id"]): job for job in facts["imports"]}
     evidence_links = []
     for canonical_id, canonical_row in canonical.items():
         case = case_by_id.get(canonical_id, {})
+        linked_lead = lead_by_baseline.get(str(case.get("lead_id")), {})
         evidence_links.append(
             {
                 "canonical_enrollment_id": canonical_id,
                 "partner_enrollment_id": canonical_row.get("partner_enrollment_id"),
                 "case_id": str(case.get("id") or ""),
                 "status": case.get("status") or "missing_case",
+                "match_method": case.get("match_method"),
                 "conflict_flags": case.get("conflict_flags") or [],
+                "quality_issues": canonical_row.get("quality_issues") or [],
+                "conflicted": bool(canonical_row.get("conflicted")),
                 "source_row_numbers": canonical_row.get("source_row_numbers") or [],
+                "imported_at": import_by_id.get(str(canonical_row.get("import_job_id")), {}).get(
+                    "imported_at"
+                ),
+                "lead_business_id": linked_lead.get("business_id"),
+                "lead_crm_id": linked_lead.get("crm_lead_id"),
+                "creator_business_id": linked_lead.get("creator_business_id"),
+                "channel": linked_lead.get("channel"),
                 "potentially_commissionable": bool(case.get("potentially_commissionable")),
             }
         )

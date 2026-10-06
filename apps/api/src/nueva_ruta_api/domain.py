@@ -11,8 +11,7 @@ class DomainStore:
 
     @property
     def headers(self) -> dict[str, str]:
-        key = self.settings.supabase_service_role_key
-        return {"apikey": key, "Authorization": f"Bearer {key}"}
+        return self.settings.service_role_headers
 
     async def select(self, table: str, select: str, *, limit: int = 100) -> list[dict[str, Any]]:
         async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:

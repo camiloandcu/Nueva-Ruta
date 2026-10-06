@@ -1,21 +1,31 @@
-export default function Home() {
+import Link from "next/link";
+
+import { createSupabaseServerClient } from "@/lib/auth/server";
+import HomeWorkspace from "./home-workspace";
+
+export default async function Home() {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUser();
   return (
-    <main>
-      <div className="eyebrow">Fundación local · WI-001</div>
-      <h1>Nueva Ruta</h1>
-      <p>
-        Bandejas y controles para revisar leads, gestionar políticas y completar
-        transferencias sintéticas con autorización humana.
+    <main className="home-shell">
+      <span className="section-kicker">Nueva Ruta Ops</span>
+      <h1>Del primer mensaje a una decisión trazable.</h1>
+      <p className="home-intro">
+        Una operación conectada para revisar consultas, registrar acciones
+        comerciales, resolver datos contradictorios y planificar contenido con
+        evidencia.
       </p>
-      <nav aria-label="Operaciones" className="operation-grid">
-        <a href="/operations/review">Revisión de borradores</a>
-        <a href="/operations/crm">CRM y transferencias</a>
-        <a href="/operations/ai">Observabilidad de IA</a>
-        <a href="/operations/partners">Importación y conciliación</a>
-        <a href="/operations/reports">Funnel y atribución</a>
-        <a href="/operations/creators">Creadores y contenido</a>
-        <a href="/rules">Reglas</a>
-      </nav>
+      {data.user ? (
+        <HomeWorkspace />
+      ) : (
+        <section className="panel">
+          <h2>Accede a tu espacio de trabajo</h2>
+          <p>Inicia sesión para ver las áreas y acciones de tu rol.</p>
+          <Link className="button-link" href="/login">
+            Ingresar →
+          </Link>
+        </section>
+      )}
     </main>
   );
 }

@@ -27,7 +27,11 @@ def test_only_the_five_documented_dispositions_are_accepted() -> None:
             == disposition.value
         )
     assert {item.value for item in Disposition} == {
-        "No Answer", "Info Sent", "Transferido", "Call Back", "No le interesa"
+        "No Answer",
+        "Info Sent",
+        "Transferido",
+        "Call Back",
+        "No le interesa",
     }
 
 
@@ -50,11 +54,19 @@ def test_callback_requires_timezone_aware_future_timestamp_and_timezone() -> Non
         )
 
 
-def test_info_sent_requires_draft_or_manual_action_reference() -> None:
+def test_info_sent_requires_delivery_or_manual_action_reference() -> None:
     with pytest.raises(ValidationError, match="Info Sent requires"):
         DispositionRequest(
             disposition=Disposition.INFO_SENT.value,
             idempotency_key="command-key-0001",
             reason="Sent",
             correlation_id="crm-test",
+        )
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        DispositionRequest(
+            disposition=Disposition.INFO_SENT.value,
+            idempotency_key="command-key-0002",
+            reason="Approved only",
+            correlation_id="crm-test",
+            draft_id="00000000-0000-0000-0000-000000000001",  # type: ignore[call-arg]
         )

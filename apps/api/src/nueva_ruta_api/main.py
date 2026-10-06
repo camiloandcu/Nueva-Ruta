@@ -1,7 +1,14 @@
+import json
+import logging
+import re
+import time
 from typing import Annotated, Any
+from uuid import uuid4
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Response, status
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
 
 from nueva_ruta_api.auth import Principal, Role, get_settings, require_roles
 from nueva_ruta_api.config import Settings
@@ -21,6 +28,41 @@ from nueva_ruta_api.schemas import (
 )
 
 app = FastAPI(title="Nueva Ruta API", version="0.1.0")
+
+logger = logging.getLogger("nueva_ruta.request")
+CORRELATION_ID = re.compile(r"^[A-Za-z0-9._:-]{1,100}$")
+
+
+class RequestObservabilityMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        supplied = request.headers.get("x-correlation-id", "")
+        correlation_id = supplied if CORRELATION_ID.fullmatch(supplied) else str(uuid4())
+        request.state.correlation_id = correlation_id
+        started = time.perf_counter()
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+            response.headers["X-Correlation-ID"] = correlation_id
+            return response
+        finally:
+            logger.info(
+                json.dumps(
+                    {
+                        "event": "http_request",
+                        "correlation_id": correlation_id,
+                        "method": request.method,
+                        "route": getattr(request.scope.get("route"), "path", "unmatched"),
+                        "status_code": status_code,
+                        "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                )
+            )
+
+
+app.add_middleware(RequestObservabilityMiddleware)
 app.include_router(rules_router)
 app.include_router(ingestion_router)
 app.include_router(partner_router)
@@ -32,7 +74,10 @@ app.include_router(crm_router)
 async def check_supabase_auth(settings: Settings) -> tuple[bool, str]:
     try:
         async with httpx.AsyncClient(timeout=settings.request_timeout_seconds) as client:
-            response = await client.get(settings.auth_health_url)
+            response = await client.get(
+                settings.auth_health_url,
+                headers={"apikey": settings.supabase_anon_key},
+            )
         if response.is_success:
             return True, "ready"
         return False, f"unexpected_status_{response.status_code}"

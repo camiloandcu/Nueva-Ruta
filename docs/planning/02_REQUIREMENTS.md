@@ -89,7 +89,7 @@ Disposition mapping SHALL be:
 | Disposition | Commercial stage | Required data |
 |---|---|---|
 | No Answer | `contact_attempted` | usable phone or documented missing-phone task |
-| Info Sent | `info_sent` | approved substantive message or recorded external action |
+| Info Sent | `info_sent` | case-linked approved message with separate simulated-delivery event, or documented external action |
 | Transferido | `transferred` | explicit operator approval and partner request ID |
 | Call Back | `callback_scheduled` | future callback timestamp and timezone |
 | No le interesa | `closed_not_interested` | reason; opt-out evidence when explicit |
@@ -203,7 +203,7 @@ A supervisor SHALL have a protected, confirmed reset that restores the synthetic
 
 ### REQ-E09 — Documentation and video
 
-The repository SHALL deliver a product-facing README, exported n8n workflows, architecture, decisions, compliance, cleaning, AI-use and scale notes, and a demo script/recording no longer than six minutes.
+The repository SHALL deliver a product-facing README, exported n8n workflows, architecture, decisions, compliance, cleaning, AI-use and scale notes. The application flow SHALL support a concise evaluator-led walkthrough.
 
 ### REQ-E10 — External services
 

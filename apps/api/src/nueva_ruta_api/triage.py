@@ -24,7 +24,22 @@ SPAM = re.compile(r"\b(?:crypto giveaway|casino|seo backlinks)\b", re.I)
 RISK = re.compile(r"\b(?:abogado|demanda|demandar|suicid|amenaza|embargo|legal)\w*\b", re.I)
 HANDOFF = re.compile(r"\b(?:persona|supervisor|hablar con alguien)\b", re.I)
 AMOUNT = re.compile(r"(?:\$\s*)?(\d{1,3}(?:[,.]\d{3})+|\d{4,6})")
+AMOUNT_THOUSANDS = re.compile(r"\b(\d{1,3})\s+mil\b", re.I)
 STATE = re.compile(r"\b(CA|FL|TX|NY|NJ|AZ)\b", re.I)
+STATE_NAMES = re.compile(
+    r"\b(California|Florida|Texas|New York|Nueva York|New Jersey|Nueva Jersey|Arizona)\b",
+    re.I,
+)
+STATE_CODES = {
+    "california": "CA",
+    "florida": "FL",
+    "texas": "TX",
+    "new york": "NY",
+    "nueva york": "NY",
+    "new jersey": "NJ",
+    "nueva jersey": "NJ",
+    "arizona": "AZ",
+}
 
 
 def stable_id(kind: str, event: InboundEvent, suffix: str = "") -> str:
@@ -37,20 +52,33 @@ def extract_fields(text: str) -> ApprovedFields:
     lowered = text.casefold()
     amount_match = AMOUNT.search(text)
     amount = int(amount_match.group(1).replace(",", "").replace(".", "")) if amount_match else None
+    if amount is None and (thousands_match := AMOUNT_THOUSANDS.search(text)):
+        amount = int(thousands_match.group(1)) * 1000
     state_match = STATE.search(text)
+    state_name_match = STATE_NAMES.search(text) if state_match is None else None
     debt_type: Literal["credit_card", "medical", "personal_loan"] | None = None
     if "tarjeta" in lowered or "credit card" in lowered:
         debt_type = "credit_card"
     elif "médic" in lowered or "medic" in lowered:
         debt_type = "medical"
-    elif "préstamo" in lowered or "personal loan" in lowered:
+    elif re.search(r"\bpr[eé]stamos?\b|\bpersonal loans?\b", lowered):
         debt_type = "personal_loan"
     return ApprovedFields(
         approximate_debt=amount,
         debt_type=debt_type,
-        state=state_match.group(1).upper() if state_match else None,
+        state=(
+            state_match.group(1).upper()
+            if state_match
+            else STATE_CODES[state_name_match.group(1).casefold()]
+            if state_name_match
+            else None
+        ),
         preferred_language="en" if re.search(r"\b(?:hello|debt|help)\b", lowered) else "es",
-        wants_counselor=True if re.search(r"\bconsejero\b", lowered) else None,
+        wants_counselor=(
+            True
+            if re.search(r"\b(?:consejero|hablar con alguien|hablar con una persona)\b", lowered)
+            else None
+        ),
     )
 
 

@@ -1,4 +1,5 @@
 {
+  "id": "a0090000-0000-4000-8000-000000000105",
   "name": "WI-005 Partner Transfer and Recovery",
   "nodes": [
     {
@@ -27,7 +28,7 @@
         "method": "POST",
         "url": "={{$env.API_INTERNAL_URL}}/v1/crm/deliveries/process",
         "sendHeaders": true,
-        "headerParameters": {"parameters": [{"name": "Authorization", "value": "=Bearer {{$json.auth_token}}"}]},
+        "headerParameters": {"parameters": [{"name": "Authorization", "value": "=Bearer {{$json.auth_token}}"}, {"name": "X-Correlation-ID", "value": "={{'wi005-delivery-' + $execution.id}}"}]},
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{JSON.stringify({mode: $json.mode || 'success'})}}",
@@ -44,7 +45,7 @@
         "method": "POST",
         "url": "={{$env.API_INTERNAL_URL}}/v1/crm/deliveries/{{$json.event_id}}/replay",
         "sendHeaders": true,
-        "headerParameters": {"parameters": [{"name": "Authorization", "value": "=Bearer {{$json.auth_token}}"}]},
+        "headerParameters": {"parameters": [{"name": "Authorization", "value": "=Bearer {{$json.auth_token}}"}, {"name": "X-Correlation-ID", "value": "={{$json.correlation_id}}"}]},
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{JSON.stringify({reason: $json.reason, correlation_id: $json.correlation_id})}}",
@@ -104,6 +105,5 @@
   "settings": {"executionOrder": "v1"},
   "active": false,
   "versionId": "00000000-0000-4000-8000-000000000005",
-  "meta": {"templateCredsSetupCompleted": false},
-  "tags": [{"name": "synthetic-only"}, {"name": "human-approved-transfer"}]
+  "meta": {"templateCredsSetupCompleted": false}
 }

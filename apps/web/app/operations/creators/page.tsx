@@ -7,11 +7,11 @@ export default async function CreatorContentPage() {
   const { data } = await supabase.auth.getSession();
   return (
     <main className="operations-shell">
-      <div className="eyebrow">Planificación de contenido · WI-008</div>
+      <div className="eyebrow">Sistema de contenido</div>
       <h1>Creadores y contenido</h1>
       <p>
-        Perfiles, fuentes y borradores ficticios para análisis descriptivo. No
-        se publica, programa ni recopila contenido de redes.
+        Explora los perfiles, la evidencia que prioriza cada fuente y los
+        guiones pendientes de revisión.
       </p>
       {data.session ? (
         <CreatorContentPlanning />

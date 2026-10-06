@@ -153,6 +153,21 @@ async def reconciliation_queue(_: Viewer, settings: Config) -> list[dict[str, ob
         ) from exc
 
 
+@router.get("/reconciliation/available-leads")
+async def reconciliation_available_leads(_: Reviewer, settings: Config) -> list[dict[str, object]]:
+    """Offer business-labeled CRM cases for a deliberate manual match."""
+    try:
+        return await IngestionStore(settings).select_rows(
+            "operational_crm_leads",
+            select="id,business_id,commercial_stage",
+            order="business_id.asc",
+        )
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "Case choices unavailable"
+        ) from exc
+
+
 @router.get("/{import_job_id}/quality")
 async def import_quality(
     import_job_id: UUID, _: Viewer, settings: Config

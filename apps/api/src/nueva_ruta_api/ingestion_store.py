@@ -11,8 +11,7 @@ class IngestionStore:
 
     @property
     def headers(self) -> dict[str, str]:
-        key = self.settings.supabase_service_role_key
-        return {"apikey": key, "Authorization": f"Bearer {key}", "Prefer": "return=representation"}
+        return {**self.settings.service_role_headers, "Prefer": "return=representation"}
 
     async def rpc(self, name: str, payload: dict[str, Any]) -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:

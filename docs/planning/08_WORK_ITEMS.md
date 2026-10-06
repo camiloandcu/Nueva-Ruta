@@ -383,7 +383,7 @@ WI-007 implementation is approved and complete locally; its pull request is pend
 
 ## WI-009 — Reliability, scale, documentation and demo release
 
-- Status: proposed.
+- Status: in progress (approved 2026-10-04); [OpenSpec proposal](../../openspec/changes/wi-009-reliability-scale-demo-release/proposal.md).
 - Business value: converts working features into credible, repeatable evaluation evidence.
 - Goal: harden observability, execute scale and clean-start evidence, complete product documentation and prepare the final demo/deployment decision.
 
@@ -395,8 +395,8 @@ WI-007 implementation is approved and complete locally; its pull request is pend
 - Product-facing README and verified sub-fifteen-minute quickstart.
 - Final architecture, decisions, compliance, cleaning, AI-use and scale documentation.
 - Exported/importable n8n workflows.
-- Six-minute video script and recording checklist.
-- Temporary hosting comparison and separate authorization gate.
+- Evaluator-ready application flow for a concise recording.
+- Conditional temporary Railway + Supabase Cloud setup under ADR-025's hard cost and expiry limits.
 - Final local demo reset rehearsal.
 
 ### Out of scope
@@ -413,8 +413,8 @@ WI-007 implementation is approved and complete locally; its pull request is pend
 - Load report contains throughput, p50/p95, backlog, losses and duplicates without unsupported claims.
 - Video path fits six minutes and demonstrates the agreed flows.
 - Required deliverables are present and internally linked.
-- If hosting is declined, local delivery is still complete.
-- If hosting is approved, it uses synthetic data, password protection, external secrets and a shutdown date.
+- Hosted work stops before provisioning unless total cost through expiry is verifiably at or below USD 7.
+- Hosted use is synthetic-only, application-authenticated, secret-safe, web-only public and stopped by the approved expiry.
 
 ### Verification
 
@@ -422,7 +422,7 @@ WI-007 implementation is approved and complete locally; its pull request is pend
 - Full automated checks.
 - Load and reset runs.
 - Documentation link/checklist review.
-- Timed video dry run.
+- End-to-end evaluator walkthrough.
 
 ### Future `opsx:propose` input
 

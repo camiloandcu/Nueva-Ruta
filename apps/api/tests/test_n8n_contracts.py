@@ -4,6 +4,32 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def test_tracked_workflows_are_importable_and_correlate_api_requests() -> None:
+    workflow_paths = sorted((ROOT / "infra/n8n/workflows").glob("wi-*.json"))
+    assert len(workflow_paths) == 4
+    for path in workflow_paths:
+        workflow = json.loads(path.read_text())
+        assert workflow["id"]
+        assert not workflow.get("credentials")
+        for node in workflow["nodes"]:
+            if node["type"] != "n8n-nodes-base.httpRequest":
+                continue
+            headers = node["parameters"].get("headerParameters", {}).get("parameters", [])
+            assert any(header["name"].lower() == "x-correlation-id" for header in headers)
+
+
+def test_container_bootstrap_imports_and_publishes_each_tracked_workflow() -> None:
+    dockerfile = (ROOT / "infra/n8n/Dockerfile").read_text()
+    startup = (ROOT / "infra/n8n/start.js").read_text()
+
+    assert 'infra/n8n/start.js /opt/n8n/start.js' in dockerfile
+    assert '"/opt/n8n/start.js"' in dockerfile
+    assert '"import:workflow"' in startup
+    assert '"publish:workflow"' in startup
+    assert "workflow.id" in startup
+    assert "update:workflow" not in startup
+
+
 def test_wi005_n8n_disposition_workflow_uses_only_fastapi_and_branches_all_commands() -> None:
     workflow = json.loads((ROOT / "infra/n8n/workflows/wi-005-crm-disposition.json").read_text())
     nodes = workflow["nodes"]

@@ -7,11 +7,11 @@ export default async function PartnerReconciliationPage() {
   const { data } = await supabase.auth.getSession();
   return (
     <main className="operations-shell">
-      <div className="eyebrow">Operaciones · WI-006</div>
-      <h1>Importación y conciliación de aliados</h1>
+      <div className="eyebrow">Calidad de datos</div>
+      <h1>Limpieza y conciliación</h1>
       <p>
-        Importa únicamente CSV sintéticos de demostración. Los datos originales
-        se conservan y las coincidencias inciertas requieren revisión humana.
+        Sigue el camino de cada fila desde el archivo original hasta una
+        coincidencia confirmada o un caso para revisión.
       </p>
       {data.session ? (
         <PartnerReconciliation />

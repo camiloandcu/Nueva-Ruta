@@ -1,97 +1,77 @@
-# Nueva Ruta
+# Nueva Ruta Ops
 
-Nueva Ruta is a fictional Spanish-language debt-management operations product for the US Hispanic market. It makes creator-attributed lead handling, human-reviewed messaging, partner handoff and imperfect-data reconciliation visible and auditable. WI-002 adds the constrained domain, role and deterministic synthetic-data baseline; it does not yet classify leads or reconcile partner rows.
+Nueva Ruta Ops is a Spanish-first operations prototype for fictional debt-management lead intake. It demonstrates traceable creator attribution, redacted lead triage, human-reviewed responses, controlled partner handoff, dirty-data reconciliation, operational reporting, and evidence-linked content planning. All fixtures and partner activity are synthetic; this is not a consumer financial service or production system.
 
-## Runtime architecture
+## Product walkthrough
 
 ```mermaid
 flowchart LR
-    browser[Browser] --> web[Next.js]
-    web --> api[FastAPI]
-    api --> db[Supabase local PostgreSQL]
-    web --> authSession[Supabase Auth session]
-    api --> authHealth[Supabase Auth health]
-    n8n[n8n] -. future work items .-> contracts[FastAPI contracts]
-    simulator[simulator] -. future work items .-> fixtures[external boundary fixtures]
+    source[CTWA / organic simulator] --> n8n[n8n workflows]
+    n8n --> api[FastAPI business boundary]
+    web[Next.js operator UI] --> api
+    web --> auth[Supabase Auth]
+    api --> db[Supabase PostgreSQL]
+    api --> ai[Optional AI adapter / deterministic default]
+    api --> partner[Partner simulator]
+    db --> reports[Reporting, reconciliation, content evidence]
 ```
 
-- **Next.js App Router** owns the Spanish operator shell and server-side session handling.
-- **FastAPI** is the exclusive boundary for future business reads and writes.
-- **Supabase local** owns PostgreSQL, Auth and Studio. Its SQL migrations are the only schema history.
-- **n8n** will make orchestration visible without becoming the source of truth.
-- **Simulator** will emulate chat and partner boundaries without external accounts.
+- Operators move through **Bandeja → Casos → Operación → Resultados**, with case-specific evidence and clearly labeled global queues. Every case has a stable `LEAD-…` label; its UUID remains available for audit.
+- Supervisors publish versioned rules, approve transfers and review actions, manage recovery, and reset synthetic demo state.
+- Analysts see attribution-safe reporting and reconciliation evidence.
+- No substantive message or partner transfer bypasses human authorization.
 
-## Prerequisites
+## Start locally
 
-- Docker Desktop or Docker Engine with Compose v2. In WSL, enable Docker Desktop integration for the distribution.
-- Node.js `24.18.0` and pnpm `11.17.0` (Corepack is acceptable).
-- Python `3.12.12` and uv `0.12.0`.
-- `curl` and a POSIX shell.
-- At least 6 GB of free Docker memory is recommended for the combined Supabase and application stack.
-
-No Supabase account, n8n account or paid service is required.
-
-## First start (target: under 15 minutes)
+Requires Docker with Compose v2, Node.js `24.18.0` / pnpm `11.17.0`, Python `3.12.12` / uv `0.12.0`, `curl`, and a POSIX shell. The local path has no paid-service requirement.
 
 ```bash
 cp .env.example .env
-```
-
-Replace every `replace-with-a-local-*` value in `.env` with local random values. Smoke and demo passwords must contain lowercase and uppercase letters plus digits and be at least 12 characters. Do not reuse production credentials. Then install locked dependencies and start:
-
-```bash
+# Replace every local placeholder with unique local-only values.
 pnpm install --frozen-lockfile
 uv sync --frozen
 make up
 make verify
 ```
 
-The wrapper starts Supabase first, reads its local anonymous key into the ignored `.env.runtime`, builds the application containers and waits for readiness. It prints every local URL when successful. No dashboard resources or n8n nodes must be created manually.
+Keep AI set to `deterministic` for a no-provider demo. Never paste real lead information or reuse credentials. `make up` initializes local Supabase Auth/Postgres, bootstraps the three synthetic roles, builds the application containers, and waits for service health.
 
-## Daily commands
+| Command | Purpose |
+| --- | --- |
+| `make up` / `make down` | Start or stop the local Compose + Supabase stack |
+| `make verify` | Check web, API, n8n, simulator, UI→API, and authenticated SSR smoke paths |
+| `make reset` | Reapply local migrations/seeds and bootstrap synthetic identities |
+| `make test-db` | Run Supabase database integration tests |
+| `pnpm --filter @nueva-ruta/web test:e2e` | Run authenticated Chromium case-flow tests against the running local stack |
+| `make quality` | Format, lint, typecheck, Python/UI tests, and repository-boundary checks |
+| `pnpm --dir apps/web build` | Build the Next.js application |
 
-| Command | Result |
-|---|---|
-| `make up` | Start Supabase and the Compose applications, then wait for readiness |
-| `make verify` | Check every service plus Next.js → FastAPI and Auth SSR smoke paths |
-| `make reset` | Rebuild the local database from Supabase SQL migrations |
-| `make seed` | Explicit alias for a clean migration/seed rebuild and local identity bootstrap |
-| `make test-db` | Run live database constraints, reset repeatability and audit tests after seeding |
-| `make quality` | Run format, lint, type, tests, architecture and secret-pattern checks |
-| `make down` | Stop Compose and Supabase local services |
+Local URLs: web <http://localhost:3000>, API docs <http://localhost:8000/docs>, n8n <http://localhost:5678>, simulator docs <http://localhost:8081/docs>, Supabase Studio <http://localhost:54323>.
 
-Service URLs after startup:
+## Data and safety boundaries
 
-- Web: <http://localhost:3000>
-- FastAPI docs: <http://localhost:8000/docs>
-- n8n: <http://localhost:5678>
-- Simulator docs: <http://localhost:8081/docs>
-- Supabase Studio: <http://localhost:54323>
+- All records are fictional. Seeded demo roles use passwords supplied in ignored `.env`; do not commit or share them publicly.
+- Next.js and n8n use authenticated FastAPI contracts for business data. Supabase is accessed directly by the web layer only for its server-managed auth session.
+- Supabase SQL migrations are the only schema history. `make reset` is for local developer setup; the product reset is supervisor-gated and audited.
+- AI is optional. Deterministic processing is the no-key, reproducible default. Any optional model receives redacted text and can only assist with reviewed drafts; it cannot decide real suitability, publish, or transfer.
+- This prototype is not approved for real consumers, real financial intake, real partner connectivity, or production traffic.
 
-## Migration and boundary rules
+## Temporary hosted demo
 
-All schema changes belong in `supabase/migrations`. Do not add Alembic. Next.js may use Supabase directly only for authentication/session handling; all business data crosses FastAPI. n8n follows the same boundary. Direct database access is revoked for `anon` and `authenticated`; FastAPI uses its server-only local service key.
+WI-009 defines a short-lived, authenticated synthetic demo on Railway + Supabase Cloud, approved up to USD 7 total and expiring **2026-10-09 at 23:59 America/Bogota**. It remains conditional on a verifiable cost path within that cap. Only the web UI may be public; API, n8n, and simulator remain private. No live AI or real lead data is used. The local stack remains authoritative. See [temporary demo operations](docs/09_TEMPORARY_DEMO.md).
 
-## Demo roles and synthetic fixtures
+The authenticated [temporary demo](https://web-demo-ffe2.up.railway.app/) serves Intake, case-centered CRM, reconciliation, and reporting with inline enrollment origin. Access requires an assigned demo account; local `.env` credentials are not interchangeable with hosted credentials.
 
-`make up`, `make seed` and `make reset` create three local-only Supabase Auth identities from ignored `.env` credentials and map them server-side to `operator`, `supervisor` and `analyst`. The operator and supervisor can read operational fixtures; the analyst receives attribution-safe lead fields and cannot retrieve message details. Never commit the passwords or use these identities outside the local demo.
+## Documentation
 
-The baseline has five fictional creators, 48 fictional leads/messages, 30 deliberately dirty raw partner rows and ten fictional content sources. All are marked synthetic and unsuitable for contact or production use. Phones use only the reserved-looking `+1 555-01xx` convention. The fixed reference instant and full coverage map are documented in `docs/implementation/01_WI-002_FIXTURE_COVERAGE.md`.
-
-The product reset is `POST /v1/admin/synthetic-baseline/reset`. It requires an authenticated supervisor, the exact confirmation `RESET SYNTHETIC BASELINE`, a reason and a correlation ID. It restores known synthetic tables in one database transaction and appends one safe audit event. Operator/analyst requests and incorrect confirmations do not mutate data. `make reset` remains the developer clean-database lifecycle command.
-
-## Troubleshooting
-
-- **Docker is unavailable in WSL:** enable the distribution under Docker Desktop → Settings → Resources → WSL Integration, reopen the shell and run `docker version`. When Docker Desktop configures its Windows credential helper inside WSL, the wrapper uses an ignored, public-image-only Docker config so startup does not depend on that helper.
-- **A required variable is missing:** copy `.env.example` again and replace its local placeholders. The wrapper reports variable names but never values.
-- **Supabase is partially running:** run `make down`, then `make up`. The wrapper is designed for repeated lifecycle use.
-- **A port is already occupied:** stop the conflicting local service. The reserved ports are 3000, 5678, 8000, 8081 and 54320–54329.
-- **Demo identity bootstrap fails:** confirm all six `DEMO_*` email/password values exist in `.env`, satisfy the local Auth password policy and are not placeholders; then rerun `make seed`.
+- [Architecture and operations](docs/07_ARCHITECTURE_OPERATIONS.md)
+- [Compliance and AI boundary](docs/planning/06_COMPLIANCE_AND_AI.md) · [AI-use guide](docs/08_AI_USE.md)
+- [Partner data cleaning and reconciliation](docs/10_PARTNER_DATA_CLEANING.md)
+- [Synthetic load method and report](docs/11_SCALE_REPORT.md)
+- [Product and requirements index](docs/planning/00_INDEX.md) · [work items](docs/planning/08_WORK_ITEMS.md) · [decision log](docs/planning/07_DECISIONS.md)
+- [Implementation verification reports](docs/implementation/)
+- [n8n workflow export/import notes](infra/n8n/workflows/README.md)
 
 ## Current scope
 
-This increment proves runtime health, constrained persistence, server-side application roles,
-deterministic fixtures, protected reset, idempotent synthetic lead ingestion, redacted
-triage, optional observable assistance and human-reviewed drafts. DMP pre-qualification,
-CRM dispositions, retries, partner normalization/reconciliation, reporting and content
-generation remain reserved for separately reviewed OpenSpec changes.
+Implemented WI-001–WI-008 cover local runtime and auth, deterministic synthetic domain data, governed rules, lead ingestion and drafts, CRM dispositions and partner delivery recovery, partner import and reconciliation, reporting, and creator content planning. WI-009 is release hardening and temporary-demo readiness—not another customer-facing workflow. Hosted availability and measured results are recorded only after they are verified.

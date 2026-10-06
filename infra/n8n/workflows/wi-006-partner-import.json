@@ -1,4 +1,5 @@
 {
+  "id": "a0090000-0000-4000-8000-000000000006",
   "name": "WI-006 Synthetic Partner Import",
   "nodes": [
     {
@@ -8,9 +9,9 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://api:8000/v1/partner-imports/{{$json.body.import_job_id}}/process",
+        "url": "={{$env.API_INTERNAL_URL}}/v1/partner-imports/{{$json.body.import_job_id}}/process",
         "sendHeaders": true,
-        "headerParameters": {"parameters": [{"name": "Authorization", "value": "={{$json.headers.authorization}}"}]},
+        "headerParameters": {"parameters": [{"name": "Authorization", "value": "={{$json.headers.authorization}}"}, {"name": "X-Correlation-ID", "value": "={{'wi006-import-' + $execution.id}}"}]},
         "options": {"response": {"response": {"neverError": true}}}
       },
       "id": "fastapi", "name": "FastAPI normalization and reconciliation", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [260, 0]
@@ -35,6 +36,5 @@
   "settings": {"executionOrder": "v1", "saveDataErrorExecution": "none", "saveDataSuccessExecution": "none"},
   "active": false,
   "versionId": "00000000-0000-4000-8000-000000000006",
-  "meta": {"templateCredsSetupCompleted": false},
-  "tags": [{"name": "synthetic-only"}, {"name": "fastapi-boundary"}]
+  "meta": {"templateCredsSetupCompleted": false}
 }

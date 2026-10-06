@@ -56,6 +56,39 @@ def facts() -> dict[str, object]:
 
 
 @pytest.mark.asyncio
+async def test_filter_options_reflect_authorized_facts_and_exclude_unsupported_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def rpc(self: IngestionStore, name: str, payload: dict[str, object]) -> dict[str, object]:
+        del self
+        assert name == "operational_reporting_facts"
+        assert payload == {"p_actor_id": str(USER)}
+        snapshot = facts()
+        snapshot["leads"] = [
+            {"creator_business_id": "CR-002", "channel": "ctwa", "state": "TX"},
+            {"creator_business_id": "CR-002", "channel": "organic", "state": "CA"},
+            {"creator_business_id": "CR-bad", "channel": "other", "state": "NY"},
+        ]
+        return snapshot
+
+    monkeypatch.setattr(IngestionStore, "rpc", rpc)
+    async with client_for(Role.ANALYST) as client:
+        response = client.get("/v1/reports/filter-options")
+    assert response.status_code == 200
+    assert response.json() == {
+        "creators": ["CR-002"],
+        "channels": ["ctwa", "organic"],
+        "states": ["CA", "TX"],
+        "can_open_crm": False,
+    }
+    assert "fictional_phone" not in response.text
+    async with client_for(Role.OPERATOR) as client:
+        operator_response = client.get("/v1/reports/filter-options")
+    assert operator_response.status_code == 200
+    assert operator_response.json()["can_open_crm"] is True
+
+
+@pytest.mark.asyncio
 async def test_analyst_can_read_reports_through_authorized_fastapi_rpc(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -33,3 +33,34 @@ and reconciliation, and returns the resulting counts or an actionable error.
 It does not save execution payloads, access Supabase tables, or make analyst
 decisions. Next.js dispatches jobs through the local
 `N8N_PARTNER_IMPORT_WEBHOOK_URL` setting.
+
+The n8n container image imports the tracked exports and publishes each stable
+workflow ID at startup so its private webhooks become active. It uses n8n's
+current `publish:workflow --id` command rather than the deprecated bulk update
+command. Its `API_INTERNAL_URL` points to FastAPI (`http://api:8000` locally
+and the Railway private service URL when hosted). Environment access in
+workflow expressions is enabled only for this curated, private instance; do
+not expose its editor publicly or permit unreviewed workflow edits.
+
+## Export portability and local import check
+
+The tracked JSON files are n8n workflow exports, not credential backups. API
+tokens and Supabase values are referenced through runtime environment variables;
+no n8n credential object or credential value belongs in these files. Each
+workflow has a stable top-level ID. Shared tags are intentionally omitted so a
+bundle import cannot collide on common tag names. Validate every export together
+in a fresh, disposable n8n container (memory-only state, no credentials):
+
+```bash
+docker run --rm --tmpfs /home/node/.n8n:rw,size=32m,uid=1000,gid=1000 \
+  -v "$(pwd)/infra/n8n/workflows:/workflows:ro" \
+  --entrypoint n8n n8nio/n8n:2.41.3 import:workflow --input=/workflows --separate
+```
+
+The clean import must report all four workflows imported successfully. The
+runtime migration and imported workflow store exist only in the disposable
+container's memory-backed filesystem. An interactive import into the local n8n
+instance is optional and persists there; inspect before activation. Importing
+does not create credentials, set environment variables, or authorize a live
+partner request. Use synthetic payloads only. Do not import into hosted n8n as
+part of portability validation.

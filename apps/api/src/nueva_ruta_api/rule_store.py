@@ -11,10 +11,8 @@ class RuleStore:
 
     @property
     def headers(self) -> dict[str, str]:
-        key = self.settings.supabase_service_role_key
         return {
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
+            **self.settings.service_role_headers,
             "Prefer": "return=representation",
         }
 

@@ -47,3 +47,8 @@ class Settings:
     @property
     def rest_url(self) -> str:
         return f"{self.supabase_url}/rest/v1"
+
+    @property
+    def service_role_headers(self) -> dict[str, str]:
+        key = self.supabase_service_role_key
+        return {"apikey": key, "Authorization": f"Bearer {key}"}

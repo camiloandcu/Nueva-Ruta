@@ -26,6 +26,7 @@ def test_report_keeps_partner_denominator_and_unmatched_records_under_lead_filte
         "leads": [
             {
                 "crm_lead_id": "lead-a",
+                "baseline_lead_id": "baseline-a",
                 "business_id": "LEAD-A",
                 "received_at": "2026-09-10T12:00:00Z",
                 "creator_business_id": "CR-001",
@@ -65,6 +66,8 @@ def test_report_keeps_partner_denominator_and_unmatched_records_under_lead_filte
             {
                 "id": "canonical-a",
                 "import_job_id": "import-a",
+                "partner_enrollment_id": "ENR-001",
+                "source_row_numbers": [2, 3],
                 "quality_issues": [],
                 "conflicted": False,
             },
@@ -81,7 +84,7 @@ def test_report_keeps_partner_denominator_and_unmatched_records_under_lead_filte
                 "canonical_enrollment_id": "canonical-a",
                 "status": "matched",
                 "match_method": "exact_phone",
-                "lead_id": "lead-a",
+                "lead_id": "baseline-a",
                 "conflict_flags": [],
                 "potentially_commissionable": True,
             },
@@ -132,6 +135,14 @@ def test_report_keeps_partner_denominator_and_unmatched_records_under_lead_filte
     )
     assert result["partner"]["potentially_commissionable"] == 1
     assert result["partner"]["quality_issues"] == {"unknown_creator": 1}
+    linked = result["partner"]["evidence_links"][0]
+    assert linked["source_row_numbers"] == [2, 3]
+    assert linked["imported_at"] == "2026-09-12T12:00:00Z"
+    assert linked["match_method"] == "exact_phone"
+    assert linked["lead_business_id"] == "LEAD-A"
+    assert linked["lead_crm_id"] == "lead-a"
+    assert linked["creator_business_id"] == "CR-001"
+    assert result["partner"]["evidence_links"][1]["quality_issues"] == ["unknown_creator"]
     assert "fictional_phone" not in str(result)
 
     first_page = build_operational_report(
@@ -200,3 +211,46 @@ def test_empty_report_keeps_zero_counts_and_unavailable_conversion_rates() -> No
         "next_offset": None,
         "previous_offset": None,
     }
+
+
+def test_callback_scheduled_stall_uses_due_time_not_an_elapsed_unit() -> None:
+    facts = {
+        "active_rule": {"id": "rule-v2", "version": 2, "content": RULE},
+        "leads": [
+            {
+                "crm_lead_id": "lead-callback",
+                "business_id": "LEAD-CALLBACK",
+                "received_at": "2026-09-15T16:00:00Z",
+                "commercial_stage": "callback_scheduled",
+                "stage_updated_at": "2026-09-15T16:00:00Z",
+                "callback_at": "2026-09-15T17:10:00Z",
+            }
+        ],
+        "transfers": [],
+        "imports": [],
+        "enrollments": [],
+        "reconciliations": [],
+        "normalized_quality": [],
+        "decisions": [],
+        "drafts": [],
+        "follow_up_drafts": [],
+        "escalations": [],
+        "dispositions": [],
+        "outbox": [],
+        "delivery_attempts": [],
+    }
+
+    result = build_operational_report(
+        facts,
+        start_date=None,
+        end_date=None,
+        creator=None,
+        channel=None,
+        state=None,
+        as_of=AS_OF,
+    )
+
+    callback = next(item for item in result["stalled"] if item["reason"] == "callback_scheduled")
+    assert callback["status"] == "approaching"
+    assert callback["age_unit"] == "minutes_after_due"
+    assert callback["age"] == 0

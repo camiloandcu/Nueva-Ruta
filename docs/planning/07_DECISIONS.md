@@ -152,3 +152,10 @@ Decision states: proposed, accepted, superseded. All entries below are accepted 
 - Status: accepted.
 - Decision: use Supabase CLI SQL migrations as the only schema history; do not introduce Alembic in parallel.
 - Consequence: local and potential hosted Supabase environments share one migration path and avoid schema drift.
+
+## ADR-025 — Temporary hosted demo ceiling and expiry
+
+- Status: accepted by Product Owner (2026-10-04).
+- Decision: use Railway + Supabase Cloud for the WI-009 synthetic demo only, capped at USD 7 total, with service shutdown/project pause no later than 2026-10-09 23:59 America/Bogota.
+- Constraints: cost must be verifiable before provisioning; only web is public; authenticated demo accounts and synthetic data only; API, n8n, simulator and database stay private; no live AI; stop Railway compute and pause Supabase at expiry without deleting evidence.
+- Consequence: if the account plan, project price, or forecast cannot be bounded within the cap, do not provision. Local Supabase + Compose remains the source of truth.

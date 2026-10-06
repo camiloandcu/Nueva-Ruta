@@ -12,6 +12,8 @@ from nueva_ruta_api.crm_store import CrmStore
 async def dispatch_due_transfers(
     settings: Settings,
     mode: Literal["success", "retryable_failure", "permanent_failure"] = "success",
+    *,
+    correlation_id: str | None = None,
 ) -> dict[str, Any]:
     store = CrmStore(settings)
     pending = await store.rows(
@@ -38,6 +40,7 @@ async def dispatch_due_transfers(
             try:
                 response = await client.post(
                     f"{settings.simulator_url}/v1/partner/transfers",
+                    headers={"X-Correlation-ID": correlation_id} if correlation_id else {},
                     json={
                         "transfer_id": claimed["transfer_id"],
                         "idempotency_key": claimed["idempotency_key"],
