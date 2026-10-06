@@ -14,6 +14,7 @@ from nueva_ruta_api.auth import Principal, Role, get_settings, require_roles
 from nueva_ruta_api.compliance import review_content
 from nueva_ruta_api.config import Settings
 from nueva_ruta_api.crm_store import CrmStore
+from nueva_ruta_api.ingestion_models import ApprovedFields
 from nueva_ruta_api.partner_delivery import dispatch_due_transfers
 
 router = APIRouter(prefix="/v1/crm", tags=["crm"])
@@ -27,6 +28,13 @@ class StrictModel(BaseModel):
 
 class QualificationRequest(StrictModel):
     reason: str = Field(min_length=1, max_length=300)
+    correlation_id: str = Field(min_length=1, max_length=100)
+
+
+class ExtractedFieldCorrection(StrictModel):
+    expected_fields: dict[str, Any]
+    fields: ApprovedFields
+    reason: str = Field(min_length=3, max_length=300)
     correlation_id: str = Field(min_length=1, max_length=100)
 
 
@@ -188,6 +196,27 @@ async def crm_leads(
     return await CrmStore(settings).rows(
         "operational_crm_leads", order="updated_at.desc", filters=filters
     )
+
+
+@router.post("/leads/{crm_lead_id}/extracted-fields")
+async def correct_extracted_fields(
+    crm_lead_id: UUID, body: ExtractedFieldCorrection, actor: Operator, settings: Config
+) -> dict[str, Any]:
+    try:
+        result: dict[str, Any] = await CrmStore(settings).rpc(
+            "correct_extracted_lead_fields",
+            {
+                "p_crm_lead_id": str(crm_lead_id),
+                "p_actor_id": str(actor.id),
+                "p_expected_fields": body.expected_fields,
+                "p_fields": body.fields.model_dump(mode="json"),
+                "p_reason": body.reason,
+                "p_correlation_id": body.correlation_id,
+            },
+        )
+        return result
+    except httpx.HTTPStatusError as exc:
+        raise api_error(exc) from exc
 
 
 @router.get("/dispositions")

@@ -94,7 +94,10 @@ test("newly ingested cases receive a label and invalid deep links never select a
   await expect(extracted).toContainText("Tarjetas de crédito");
   await expect(extracted).toContainText("TX");
   await expect(extracted).toContainText("Una persona debe confirmarlos");
-  await page.screenshot({ path: "/tmp/influgain-extraction.png", fullPage: true });
+  await page.screenshot({
+    path: "/tmp/influgain-extraction.png",
+    fullPage: true,
+  });
   const label = await page.locator(".case-identity strong").innerText();
   await page.getByRole("button", { name: "Aprobar sin entregar" }).click();
   await expect(page.getByText("Borrador aprobado y auditado")).toBeVisible();
@@ -109,6 +112,53 @@ test("newly ingested cases receive a label and invalid deep links never select a
   await expect(
     page.locator(".crm-workspace > .panel").first().locator(".evidence-card"),
   ).toHaveCount(0);
+});
+
+test("a human handoff retains AI extraction and accepts an audited CRM correction", async ({
+  page,
+}) => {
+  await page.goto("/operations/review");
+  await page
+    .getByLabel("Mensaje entrante")
+    .fill(
+      "Tengo deudas de 5 mil dolares en prestamos y vivo en California. ¿Puedo hablar con alguien?",
+    );
+  await page.getByRole("button", { name: "Ingresar mensaje" }).click();
+  await expect(page.getByText("Entrada registrada y clasificada")).toBeVisible({
+    timeout: 30_000,
+  });
+  const intake = page.getByRole("region", {
+    name: "Datos detectados del mensaje",
+  });
+  await expect(intake).toContainText("Aprox. $5,000");
+  await expect(intake).toContainText("Préstamo personal");
+  await expect(intake).toContainText("CA");
+  await expect(intake).toContainText("Pidió consejero");
+  await expect(page.getByText("Escalar a una persona").first()).toBeVisible();
+  const label = await page.locator(".case-identity strong").innerText();
+  await page.getByRole("link", { name: "Abrir este caso en CRM" }).click();
+  await expect(
+    page.locator(".crm-workspace .evidence-card").first(),
+  ).toContainText(label);
+  const details = page.getByRole("region", { name: "Datos del mensaje" });
+  await expect(details).toContainText("Aprox. $5,000");
+  await details
+    .getByRole("button", { name: "Corregir datos detectados" })
+    .click();
+  await details.getByLabel("Monto aproximado en USD").fill("6000");
+  await details
+    .getByLabel("Motivo de la corrección")
+    .fill("Confirmado por el operador en la demo");
+  await details.getByRole("button", { name: "Guardar corrección" }).click();
+  await expect(details).toContainText("Aprox. $6,000");
+  await expect(details).toContainText("corregido");
+  await page.screenshot({
+    path: "/tmp/influgain-correction.png",
+    fullPage: true,
+  });
+  await page.getByRole("link", { name: "Ver entrada de este caso" }).click();
+  await expect(intake).toContainText("Aprox. $6,000");
+  await expect(intake).toContainText("corregido");
 });
 
 test("case navigation stays usable on a narrow screen", async ({ page }) => {

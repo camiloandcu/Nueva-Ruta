@@ -25,6 +25,7 @@ type Lead = {
     wants_counselor: boolean | null;
   } | null;
   extraction_source: "deterministic" | "ai_assisted" | null;
+  extraction_corrected_at: string | null;
 };
 type Draft = {
   id: string;
@@ -383,10 +384,11 @@ export default function ReviewQueue() {
                     {!hasDetectedFields
                       ? "Sin datos detectados"
                       : selected.extraction_source === "ai_assisted"
-                        ? "IA validada"
+                        ? "IA + reglas"
                         : selected.extraction_source === "deterministic"
                           ? "Reglas de extracción"
                           : "Sin extracción"}
+                    {selected.extraction_corrected_at ? " · corregido" : ""}
                   </span>
                 </div>
                 <p>

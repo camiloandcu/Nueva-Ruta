@@ -545,6 +545,19 @@ button:disabled {
   border-radius: 0.55rem;
   background: #fff;
 }
+.crm-extraction {
+  margin: 1.2rem 0;
+}
+.extraction-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+.extraction-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
 
 .evidence-grid {
   display: grid;
@@ -666,6 +679,17 @@ button:disabled {
 }
 .crm-workspace .evidence-card {
   border-color: #a3d4b7;
+}
+.crm-cases {
+  grid-template-columns: minmax(0, 1fr);
+}
+.crm-cases > .panel:first-child {
+  width: 100%;
+  max-width: 1000px;
+  margin-inline: auto;
+}
+.crm-cases > .panel:first-child > .evidence-card {
+  max-width: none;
 }
 
 .crm-operations-panel {
@@ -1265,7 +1289,8 @@ button:disabled {
     display: none;
   }
   .evidence-grid,
-  .execution-card .evidence-grid {
+  .execution-card .evidence-grid,
+  .extraction-form-grid {
     grid-template-columns: minmax(0, 1fr);
   }
   .operations-shell > h1,

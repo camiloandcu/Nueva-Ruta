@@ -38,6 +38,7 @@ async def test_redacted_leads_include_approved_extraction(monkeypatch: pytest.Mo
                     "decision_id": "decision-1",
                     "approved_fields": {"state": "TX"},
                     "source": "deterministic",
+                    "corrected_at": None,
                 }
             ]
 
@@ -47,6 +48,7 @@ async def test_redacted_leads_include_approved_extraction(monkeypatch: pytest.Mo
     assert result[0]["extraction_source"] == "deterministic"
     assert result[1]["extracted_fields"] is None
     assert result[1]["extraction_source"] is None
+    assert result[1]["extraction_corrected_at"] is None
 
 
 def event(message: str, event_id: str = "fixture-1") -> InboundEvent:
@@ -121,6 +123,19 @@ def test_decisive_triage_and_minimal_extraction() -> None:
     assert not ({"ssn", "income", "credit_score"} & fields.model_fields_set)
 
 
+def test_plain_spanish_handoff_still_extracts_amount_debt_and_state() -> None:
+    message = (
+        "Tengo deudas de 5 mil dolares en prestamos y vivo en California. "
+        "¿Puedo hablar con alguien?"
+    )
+    fields = extract_fields(message)
+    assert fields.approximate_debt == 5000
+    assert fields.debt_type == "personal_loan"
+    assert fields.state == "CA"
+    assert fields.wants_counselor is True
+    assert classify(event(message), redact(message)).reason_code == "requested_handoff"
+
+
 class RawAdapter:
     def __init__(self, value: str | Exception) -> None:
         self.value = value
@@ -142,6 +157,37 @@ def valid_output(**changes: Any) -> str:
         **changes,
     }
     return json.dumps(value)
+
+
+@pytest.mark.asyncio
+async def test_assisted_handoff_uses_fields_without_changing_human_route() -> None:
+    message = (
+        "Tengo deudas de 5 mil dolares en prestamos y vivo en California. "
+        "¿Puedo hablar con alguien?"
+    )
+    configured = Settings(
+        "http://db",
+        "anon",
+        "service",
+        ai_provider="openai",
+        openai_api_key="test",
+        openai_model="gpt-6-luna",
+    )
+    result = await process_event(
+        event(message, "assisted-handoff"),
+        configured,
+        store=MemoryStore(),  # type: ignore[arg-type]
+        adapter=RawAdapter(valid_output(fields={"preferred_contact_time": "por la tarde"})),
+    )
+    assert result.decision == "escalate_human"
+    assert result.decision_source == "ai_assisted"
+    assert result.ai_attempt_status == "succeeded"
+    assert result.extracted_fields.approximate_debt == 5000
+    assert result.extracted_fields.debt_type == "personal_loan"
+    assert result.extracted_fields.state == "CA"
+    assert result.extracted_fields.preferred_contact_time == "por la tarde"
+    assert result.draft_id is None
+    assert result.escalation_id is not None
 
 
 @pytest.mark.asyncio

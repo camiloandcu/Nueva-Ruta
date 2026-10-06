@@ -5,7 +5,7 @@ from typing import Any
 
 from nueva_ruta_api.ai_assistance import AssistanceAdapter, run_assistance
 from nueva_ruta_api.config import Settings
-from nueva_ruta_api.ingestion_models import InboundEvent, ProcessingResult
+from nueva_ruta_api.ingestion_models import ApprovedFields, InboundEvent, ProcessingResult
 from nueva_ruta_api.ingestion_store import IngestionStore
 from nueva_ruta_api.redaction import redact
 from nueva_ruta_api.triage import classify, stable_id
@@ -24,9 +24,17 @@ async def process_event(
     decision_source = "deterministic"
     draft = outcome.draft
     fields = outcome.fields
-    if attempt.output and outcome.decision == "respond":
-        fields = attempt.output.fields
-        draft = attempt.output.draft or draft
+    if attempt.output and outcome.decision != "ignore":
+        fields = ApprovedFields.model_validate(
+            {
+                name: getattr(fields, name)
+                if getattr(fields, name) is not None
+                else getattr(attempt.output.fields, name)
+                for name in ApprovedFields.model_fields
+            }
+        )
+        if outcome.decision == "respond":
+            draft = attempt.output.draft or draft
         decision_source = "ai_assisted"
     elif attempt.status in {"failed", "rejected"}:
         decision_source = "deterministic_fallback"
