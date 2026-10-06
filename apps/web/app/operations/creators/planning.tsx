@@ -11,14 +11,7 @@ type Creator = {
   voice: string;
   content_pillars: string[];
   cta_style: string;
-  attribution_parameters: Record<string, string>;
-  compliance_notes: string[];
-  funnel_evidence: {
-    linked_leads: number;
-    stage_counts: Record<string, number>;
-    source_ids: string[];
-    interpretation: string;
-  };
+  funnel_evidence: { linked_leads: number; interpretation: string };
 };
 type Source = {
   business_id: string;
@@ -26,23 +19,13 @@ type Source = {
   source_date: string;
   channel: string;
   theme: string;
-  provenance: string;
   display_text: string;
   compliance_risk: string;
   risk_reason: string;
   script_selectable: boolean;
   rank: number;
   priority_score: number | null;
-  factors: Record<string, number | null>;
-  factor_contributions: Record<string, number | null>;
-  evidence: {
-    linked_lead_count: number;
-    stage_counts: Record<string, number>;
-    source_age_days: number | null;
-    freshness_horizon_days: number;
-    compliance_risk: string;
-    risk_reason: string;
-  };
+  evidence: { linked_lead_count: number; source_age_days: number | null };
 };
 type Version = {
   id: string;
@@ -51,7 +34,6 @@ type Version = {
   source_id: string;
   fit_rationale: string;
   body: string;
-  body_checksum: string;
   word_count: number;
   estimated_duration_seconds: number;
   compliance_valid: boolean;
@@ -65,59 +47,129 @@ type Script = {
   title: string;
   versions: Version[];
 };
-type SourceResponse = { sources: Source[]; interpretation: string };
 type Access = { role: string; can_author: boolean; can_review: boolean };
+type Section<T> = { data: T | null; loading: boolean; error: string };
+type Tab = "overview" | "sources" | "scripts" | "creators";
 
-const factors = [
-  ["frequency", "Frecuencia"],
-  ["funnel_proximity", "Proximidad al embudo"],
-  ["freshness", "Vigencia (90 días)"],
-  ["compliance_safety", "Seguridad de cumplimiento"],
-] as const;
+const initial = <T,>(): Section<T> => ({
+  data: null,
+  loading: true,
+  error: "",
+});
+
+async function request<T>(path: string): Promise<T> {
+  const response = await fetch(`/api/operations/${path}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`No se pudo cargar (${response.status}).`);
+  return response.json() as Promise<T>;
+}
 
 export default function CreatorContentPlanning() {
-  const [creators, setCreators] = useState<Creator[]>([]);
-  const [sources, setSources] = useState<Source[]>([]);
-  const [scripts, setScripts] = useState<Script[]>([]);
-  const [access, setAccess] = useState<Access>({
-    role: "analyst",
-    can_author: false,
-    can_review: false,
-  });
-  const [platform, setPlatform] = useState("Todas");
-  const [risk, setRisk] = useState("Todos");
+  const [tab, setTab] = useState<Tab>("overview");
+  const [access, setAccess] = useState<Section<Access>>(initial);
+  const [creators, setCreators] = useState<Section<Creator[]>>(initial);
+  const [sources, setSources] = useState<Section<Source[]>>(initial);
+  const [scripts, setScripts] = useState<Section<Script[]>>(initial);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const load = useCallback(async () => {
-    const [accessResponse, creatorResponse, sourceResponse, scriptResponse] =
-      await Promise.all([
-        fetch("/api/operations/creator-content/access", { cache: "no-store" }),
-        fetch("/api/operations/creators", { cache: "no-store" }),
-        fetch("/api/operations/content/sources/ranking", { cache: "no-store" }),
-        fetch("/api/operations/content/scripts", { cache: "no-store" }),
-      ]);
-    if (
-      !accessResponse.ok ||
-      !creatorResponse.ok ||
-      !sourceResponse.ok ||
-      !scriptResponse.ok
-    ) {
-      setMessage(
-        "No fue posible cargar la planificación. Verifica tu sesión y permisos.",
-      );
-      return;
+
+  const loadAccess = useCallback(async () => {
+    setAccess((value) => ({ ...value, loading: true, error: "" }));
+    try {
+      setAccess({
+        data: await request<Access>("creator-content/access"),
+        loading: false,
+        error: "",
+      });
+    } catch (error) {
+      setAccess({
+        data: null,
+        loading: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "No se pudo cargar el acceso.",
+      });
     }
-    setAccess(await accessResponse.json());
-    setCreators(await creatorResponse.json());
-    const ranked: SourceResponse = await sourceResponse.json();
-    setSources(ranked.sources);
-    setScripts(await scriptResponse.json());
+  }, []);
+  const loadCreators = useCallback(async () => {
+    setCreators((value) => ({ ...value, loading: true, error: "" }));
+    try {
+      setCreators({
+        data: await request<Creator[]>("creators"),
+        loading: false,
+        error: "",
+      });
+    } catch (error) {
+      setCreators({
+        data: null,
+        loading: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar los creadores.",
+      });
+    }
+  }, []);
+  const loadSources = useCallback(async () => {
+    setSources((value) => ({ ...value, loading: true, error: "" }));
+    try {
+      const payload = await request<{ sources: Source[] }>(
+        "content/sources/ranking",
+      );
+      setSources({ data: payload.sources, loading: false, error: "" });
+    } catch (error) {
+      setSources({
+        data: null,
+        loading: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar las fuentes.",
+      });
+    }
+  }, []);
+  const loadScripts = useCallback(async () => {
+    setScripts((value) => ({ ...value, loading: true, error: "" }));
+    try {
+      setScripts({
+        data: await request<Script[]>("content/scripts"),
+        loading: false,
+        error: "",
+      });
+    } catch (error) {
+      setScripts({
+        data: null,
+        loading: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar los guiones.",
+      });
+    }
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 0);
+    const timer = window.setTimeout(() => {
+      void Promise.all([
+        loadAccess(),
+        loadCreators(),
+        loadSources(),
+        loadScripts(),
+      ]);
+    }, 0);
     return () => window.clearTimeout(timer);
-  }, [load]);
+  }, [loadAccess, loadCreators, loadScripts, loadSources]);
+  const refresh = useCallback(async () => {
+    await Promise.all([loadCreators(), loadSources(), loadScripts()]);
+  }, [loadCreators, loadScripts, loadSources]);
+  const creatorRows = creators.data ?? [];
+  const sourceRows = sources.data ?? [];
+  const scriptRows = scripts.data ?? [];
+  const pendingScripts = scriptRows.filter(
+    (script) => script.versions[0]?.review_state === "pending_review",
+  );
 
   async function send(path: string, body: unknown) {
     setBusy(true);
@@ -130,233 +182,236 @@ export default function CreatorContentPlanning() {
       const result = await response.json();
       setMessage(
         response.ok
-          ? "Cambio registrado. Las versiones anteriores se conservan."
-          : `No se aplicó: ${typeof result.detail === "string" ? result.detail : "revisa cumplimiento, rol y duración"}`,
+          ? "Cambio registrado. El historial se conserva."
+          : typeof result.detail === "string"
+            ? result.detail
+            : "La acción no fue aceptada.",
       );
-      if (response.ok) await load();
+      if (response.ok) await refresh();
     } catch {
-      setMessage("No se pudo conectar con el servicio de planificación.");
+      setMessage("No fue posible registrar el cambio. Intenta de nuevo.");
     } finally {
       setBusy(false);
     }
   }
 
-  const visibleCreators = creators.filter(
-    (creator) => platform === "Todas" || creator.platforms.includes(platform),
-  );
-  const visibleSources = sources.filter(
-    (source) => risk === "Todos" || source.compliance_risk === risk,
-  );
-  const prioritizedScripts = [...scripts].sort((first, second) => {
-    const firstRank = sources.find(
-      (source) => source.business_id === first.versions[0]?.source_id,
-    )?.rank;
-    const secondRank = sources.find(
-      (source) => source.business_id === second.versions[0]?.source_id,
-    )?.rank;
-    return (
-      (firstRank ?? Number.MAX_SAFE_INTEGER) -
-      (secondRank ?? Number.MAX_SAFE_INTEGER)
-    );
-  });
-
   return (
-    <div className="operation-grid">
-      <section className="panel">
-        <h2>Perfiles ficticios ({visibleCreators.length}/5)</h2>
-        <label className="filter-row">
-          Plataforma
-          <select
-            value={platform}
-            onChange={(event) => setPlatform(event.target.value)}
-          >
-            <option>Todas</option>
-            {[...new Set(creators.flatMap((item) => item.platforms))]
-              .sort()
-              .map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-          </select>
-        </label>
-        {visibleCreators.map((creator) => (
-          <article className="evidence-card" key={creator.business_id}>
-            <h3>
-              {creator.fictional_name}{" "}
-              <span className="badge">{creator.business_id}</span>
-            </h3>
-            <p>
-              {creator.handle} · {creator.platforms.join(", ")}
-            </p>
-            <p>
-              <strong>Audiencia:</strong> {creator.audience_archetype}
-            </p>
-            <p>
-              <strong>Voz:</strong> {creator.voice}
-            </p>
-            <p>
-              <strong>Pilares:</strong> {creator.content_pillars.join(" · ")}
-            </p>
-            <p>
-              <strong>CTA:</strong> {creator.cta_style}
-            </p>
-            <p>
-              <strong>Atribución:</strong>{" "}
-              {Object.entries(creator.attribution_parameters)
-                .map(([key, value]) => `${key}=${value}`)
-                .join(" · ")}
-            </p>
-            <p>
-              <strong>Notas:</strong> {creator.compliance_notes.join(" · ")}
-            </p>
-            <details>
-              <summary>
-                Evidencia de embudo ({creator.funnel_evidence.linked_leads}{" "}
-                leads vinculados)
-              </summary>
-              <p>
-                {Object.entries(creator.funnel_evidence.stage_counts)
-                  .map(([stage, count]) => `${stage}: ${count}`)
-                  .join(" · ") || "Sin etapas observadas"}
-              </p>
-              <p>
-                Fuentes:{" "}
-                {creator.funnel_evidence.source_ids.join(", ") ||
-                  "Sin fuentes vinculadas"}
-              </p>
-              <small>{creator.funnel_evidence.interpretation}</small>
-            </details>
-          </article>
-        ))}
+    <div className="workspace-stack content-workspace">
+      <section className="panel content-header">
+        <div>
+          <span className="section-kicker">Planificación editorial</span>
+          <h2>De evidencia a guion revisado</h2>
+          <p>
+            Explora primero qué requiere atención y abre el detalle solo cuando
+            lo necesites.
+          </p>
+        </div>
+        <nav className="workspace-tabs" aria-label="Vistas de contenido">
+          {(
+            [
+              ["overview", "Resumen"],
+              ["sources", "Fuentes"],
+              ["scripts", "Guiones"],
+              ["creators", "Creadores"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={tab === value ? "is-active" : "secondary-button"}
+              aria-pressed={tab === value}
+              onClick={() => setTab(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
       </section>
-
-      <section className="panel">
-        <h2>Fuentes sintéticas ({visibleSources.length}/10)</h2>
-        <p>
-          Prioridad descriptiva: no representa lift causal, ROI ni resultados
-          garantizados.
-        </p>
-        <label className="filter-row">
-          Riesgo
-          <select
-            value={risk}
-            onChange={(event) => setRisk(event.target.value)}
-          >
-            <option>Todos</option>
-            <option value="low">Bajo</option>
-            <option value="medium">Medio</option>
-            <option value="high">Alto</option>
-          </select>
-        </label>
-        {visibleSources.map((source) => (
-          <article className="evidence-card" key={source.business_id}>
-            <h3>
-              #{source.rank} · {source.business_id}{" "}
-              <span className="badge">{source.compliance_risk}</span>
-            </h3>
-            <p>{source.display_text}</p>
-            <p>
-              {source.source_type} · {source.channel} · {source.theme} ·{" "}
-              {source.source_date}
-            </p>
-            <p>
-              {source.provenance} · {source.risk_reason}
-            </p>
-            <p>
-              Leads vinculados: {source.evidence.linked_lead_count}; antigüedad:{" "}
-              {source.evidence.source_age_days ?? "no disponible"} días. Riesgo:{" "}
-              {source.evidence.compliance_risk}.
-            </p>
-            <ul>
-              {factors.map(([key, label]) => (
-                <li key={key}>
-                  {label}:{" "}
-                  {source.factors[key] == null
-                    ? "No disponible"
-                    : `${source.factors[key]} (aporte ${source.factor_contributions[key]})`}
-                </li>
-              ))}
-            </ul>
-            <p>
-              Puntaje: {source.priority_score ?? "No disponible"} ·{" "}
-              {source.script_selectable
-                ? "Elegible para borradores"
-                : "No elegible para aprobación de guion"}
-            </p>
-          </article>
-        ))}
-      </section>
-
-      <section className="panel">
-        <h2>Guiones y revisiones</h2>
-        <p>
-          Prioridad según la fuente vinculada. Los borradores son estáticos,
-          ficticios y requieren revisión humana. No hay acciones de publicación
-          o programación.
-        </p>
-        {prioritizedScripts.map((script) => {
-          const latest = script.versions[0];
-          if (!latest) return null;
-          return (
-            <article className="evidence-card" key={script.id}>
-              <h3>
-                {script.business_id} · {script.title}
-              </h3>
-              <p>
-                Versión {latest.version} · Creador {latest.creator_id} · Fuente{" "}
-                {latest.source_id} · Prioridad de fuente #
-                {sources.find(
-                  (source) => source.business_id === latest.source_id,
-                )?.rank ?? "sin ranking"}
-              </p>
-              <p>
-                <strong>Ajuste:</strong> {latest.fit_rationale}
-              </p>
-              <p>
-                {latest.word_count} palabras · duración estimada{" "}
-                {latest.estimated_duration_seconds} s · SHA-256{" "}
-                {latest.body_checksum}
-              </p>
-              <p>
-                Cumplimiento:{" "}
-                {latest.compliance_valid
-                  ? "válido"
-                  : latest.compliance_codes.join(", ")}{" "}
-                · Revisión: {latest.review_state}
-              </p>
-              <blockquote>{latest.body}</blockquote>
-              {latest.review?.reason && (
-                <p>Nota de revisión: {latest.review.reason}</p>
-              )}
-              {access.can_author && (
-                <ScriptVersionForm
-                  script={script}
-                  creators={creators}
-                  sources={sources}
-                  disabled={busy}
-                  onSubmit={(body) =>
-                    void send(`content/scripts/${script.id}/versions`, body)
-                  }
-                />
-              )}
-              {access.can_review &&
-                latest.review_state === "pending_review" && (
-                  <ScriptReviewForm
-                    versionId={latest.id}
-                    disabled={busy}
-                    onSubmit={(body) =>
-                      void send(
-                        `content/script-versions/${latest.id}/review`,
-                        body,
-                      )
-                    }
-                  />
-                )}
-            </article>
-          );
-        })}
-      </section>
+      {tab === "overview" && (
+        <section className="content-overview" aria-label="Resumen de contenido">
+          <SummaryCard
+            title="Fuentes priorizadas"
+            value={sources.loading ? "…" : String(sourceRows.length)}
+            detail="Ordenadas por evidencia y cumplimiento."
+            action="Ver fuentes"
+            onClick={() => setTab("sources")}
+          />
+          <SummaryCard
+            title="Guiones por revisar"
+            value={scripts.loading ? "…" : String(pendingScripts.length)}
+            detail="La publicación siempre requiere revisión humana."
+            action="Abrir guiones"
+            onClick={() => setTab("scripts")}
+          />
+          <SummaryCard
+            title="Perfiles disponibles"
+            value={creators.loading ? "…" : String(creatorRows.length)}
+            detail="Voz, audiencia y contexto de cada creador."
+            action="Ver creadores"
+            onClick={() => setTab("creators")}
+          />
+          {access.error && (
+            <LoadFailure
+              label="permisos"
+              error={access.error}
+              retry={loadAccess}
+            />
+          )}
+        </section>
+      )}
+      {tab === "sources" && (
+        <section className="panel content-list-panel">
+          <SectionHeading
+            title="Fuentes priorizadas"
+            detail="El ranking describe evidencia disponible; no promete resultados."
+          />
+          {sources.error ? (
+            <LoadFailure
+              label="fuentes"
+              error={sources.error}
+              retry={loadSources}
+            />
+          ) : sources.loading ? (
+            <p>Cargando fuentes…</p>
+          ) : (
+            sourceRows.map((source) => (
+              <article className="content-row" key={source.business_id}>
+                <span className="rank">#{source.rank}</span>
+                <div>
+                  <h3>{source.theme}</h3>
+                  <p>{source.display_text}</p>
+                  <small>
+                    {source.channel} · {source.source_date} ·{" "}
+                    {source.evidence.linked_lead_count} leads vinculados
+                  </small>
+                </div>
+                <div>
+                  <span className="badge">{source.compliance_risk}</span>
+                  <small>
+                    {source.script_selectable
+                      ? "Disponible para guion"
+                      : source.risk_reason}
+                  </small>
+                </div>
+              </article>
+            ))
+          )}
+        </section>
+      )}
+      {tab === "scripts" && (
+        <section className="panel content-list-panel">
+          <SectionHeading
+            title="Guiones y revisiones"
+            detail="Los guiones se guardan como versiones; ninguna acción publica contenido."
+          />
+          {scripts.error ? (
+            <LoadFailure
+              label="guiones"
+              error={scripts.error}
+              retry={loadScripts}
+            />
+          ) : scripts.loading ? (
+            <p>Cargando guiones…</p>
+          ) : (
+            scriptRows.map((script) => {
+              const latest = script.versions[0];
+              if (!latest) return null;
+              return (
+                <article className="script-card" key={script.id}>
+                  <div className="section-heading">
+                    <div>
+                      <span className="section-kicker">
+                        {script.business_id}
+                      </span>
+                      <h3>{script.title}</h3>
+                    </div>
+                    <span className="badge">{latest.review_state}</span>
+                  </div>
+                  <p>{latest.fit_rationale}</p>
+                  <blockquote>{latest.body}</blockquote>
+                  <small>
+                    v{latest.version} · {latest.creator_id} · {latest.source_id}{" "}
+                    · {latest.word_count} palabras ·{" "}
+                    {latest.estimated_duration_seconds} s
+                  </small>
+                  {latest.review?.reason && (
+                    <p className="review-note">{latest.review.reason}</p>
+                  )}
+                  {access.data?.can_author && (
+                    <ScriptVersionForm
+                      script={script}
+                      creators={creatorRows}
+                      sources={sourceRows}
+                      disabled={busy}
+                      onSubmit={(body) =>
+                        void send(`content/scripts/${script.id}/versions`, body)
+                      }
+                    />
+                  )}
+                  {access.data?.can_review &&
+                    latest.review_state === "pending_review" && (
+                      <ScriptReviewForm
+                        versionId={latest.id}
+                        disabled={busy}
+                        onSubmit={(body) =>
+                          void send(
+                            `content/script-versions/${latest.id}/review`,
+                            body,
+                          )
+                        }
+                      />
+                    )}
+                </article>
+              );
+            })
+          )}
+        </section>
+      )}
+      {tab === "creators" && (
+        <section className="panel content-list-panel">
+          <SectionHeading
+            title="Perfiles de creadores"
+            detail="Usa el perfil para mantener tono y contexto, no como evidencia de resultados."
+          />
+          {creators.error ? (
+            <LoadFailure
+              label="creadores"
+              error={creators.error}
+              retry={loadCreators}
+            />
+          ) : creators.loading ? (
+            <p>Cargando perfiles…</p>
+          ) : (
+            creatorRows.map((creator) => (
+              <article className="creator-card" key={creator.business_id}>
+                <div>
+                  <span className="section-kicker">
+                    {creator.business_id} · {creator.platforms.join(" / ")}
+                  </span>
+                  <h3>{creator.fictional_name}</h3>
+                  <p>{creator.audience_archetype}</p>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Voz</dt>
+                    <dd>{creator.voice}</dd>
+                  </div>
+                  <div>
+                    <dt>CTA</dt>
+                    <dd>{creator.cta_style}</dd>
+                  </div>
+                  <div>
+                    <dt>Leads vinculados</dt>
+                    <dd>{creator.funnel_evidence.linked_leads}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))
+          )}
+        </section>
+      )}
       {message && (
-        <p role="status" aria-live="polite">
+        <p className="inline-message" role="status">
           {message}
         </p>
       )}
@@ -364,6 +419,59 @@ export default function CreatorContentPlanning() {
   );
 }
 
+function SectionHeading({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div className="section-heading">
+      <div>
+        <h2>{title}</h2>
+        <p>{detail}</p>
+      </div>
+    </div>
+  );
+}
+function SummaryCard({
+  title,
+  value,
+  detail,
+  action,
+  onClick,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  action: string;
+  onClick: () => void;
+}) {
+  return (
+    <article className="summary-card">
+      <span>{title}</span>
+      <strong>{value}</strong>
+      <p>{detail}</p>
+      <button type="button" className="secondary-button" onClick={onClick}>
+        {action} →
+      </button>
+    </article>
+  );
+}
+function LoadFailure({
+  label,
+  error,
+  retry,
+}: {
+  label: string;
+  error: string;
+  retry: () => Promise<void>;
+}) {
+  return (
+    <div className="load-failure" role="alert">
+      <strong>No se pudieron cargar {label}.</strong>
+      <span>{error}</span>
+      <button type="button" onClick={() => void retry()}>
+        Reintentar
+      </button>
+    </div>
+  );
+}
 function ScriptVersionForm({
   script,
   creators,
@@ -379,54 +487,55 @@ function ScriptVersionForm({
 }) {
   const eligible = sources.filter((source) => source.script_selectable);
   return (
-    <form
-      action={(form) =>
-        onSubmit({
-          creator_id: String(form.get("creator_id")),
-          source_id: String(form.get("source_id")),
-          fit_rationale: String(form.get("fit_rationale")),
-          body: String(form.get("body")),
-        })
-      }
-    >
-      <h4>Crear nueva versión de {script.business_id}</h4>
-      <label>
-        Creador
-        <select name="creator_id">
-          {creators.map((creator) => (
-            <option key={creator.business_id}>{creator.business_id}</option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Fuente
-        <select name="source_id">
-          {eligible.map((source) => (
-            <option key={source.business_id}>{source.business_id}</option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Razón de ajuste
-        <input name="fit_rationale" required minLength={10} maxLength={600} />
-      </label>
-      <label>
-        Guion (estimación válida: 30–45 s)
-        <textarea
-          name="body"
-          required
-          minLength={100}
-          maxLength={5000}
-          rows={6}
-        />
-      </label>
-      <button disabled={disabled} type="submit">
-        Guardar versión para revisión
-      </button>
-    </form>
+    <details className="editor-details">
+      <summary>Crear nueva versión de {script.business_id}</summary>
+      <form
+        action={(form) =>
+          onSubmit({
+            creator_id: String(form.get("creator_id")),
+            source_id: String(form.get("source_id")),
+            fit_rationale: String(form.get("fit_rationale")),
+            body: String(form.get("body")),
+          })
+        }
+      >
+        <label>
+          Creador
+          <select name="creator_id">
+            {creators.map((creator) => (
+              <option key={creator.business_id}>{creator.business_id}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Fuente
+          <select name="source_id">
+            {eligible.map((source) => (
+              <option key={source.business_id}>{source.business_id}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Razón de ajuste
+          <input name="fit_rationale" required minLength={10} maxLength={600} />
+        </label>
+        <label>
+          Guion (30–45 s)
+          <textarea
+            name="body"
+            required
+            minLength={100}
+            maxLength={5000}
+            rows={6}
+          />
+        </label>
+        <button disabled={disabled} type="submit">
+          Guardar para revisión
+        </button>
+      </form>
+    </details>
   );
 }
-
 function ScriptReviewForm({
   versionId,
   disabled,
@@ -438,6 +547,7 @@ function ScriptReviewForm({
 }) {
   return (
     <form
+      className="review-form"
       action={(form) =>
         onSubmit({
           decision: String(form.get("decision")),

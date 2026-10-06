@@ -7,11 +7,11 @@ export default async function ReviewPage() {
   const { data } = await supabase.auth.getSession();
   return (
     <main className="operations-shell">
-      <div className="eyebrow">Operaciones · WI-004</div>
-      <h1>Revisión humana</h1>
+      <div className="eyebrow">Precalificación y handoff</div>
+      <h1>Entrada y revisión</h1>
       <p>
-        Solo se muestra evidencia redactada. Aprobar registra evidencia, pero no
-        entrega mensajes.
+        Sigue cada mensaje desde su recepción hasta la decisión y la acción
+        humana que corresponde.
       </p>
       {data.session ? (
         <ReviewQueue />

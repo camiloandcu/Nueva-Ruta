@@ -8,12 +8,11 @@ export default async function RulesPage() {
 
   return (
     <main className="rules-shell">
-      <div className="eyebrow">Gobernanza de reglas · WI-003</div>
+      <div className="eyebrow">Política operativa</div>
       <h1>Política operativa</h1>
       <p>
-        Revisa versiones inmutables, importa YAML y confirma el hash exacto
-        antes de publicar. Todos los valores son ficticios para demostración
-        local.
+        Revisa la versión activa, prepara un cambio y compara sus diferencias
+        antes de publicarlo.
       </p>
       {data.session ? (
         <RuleReview />

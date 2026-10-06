@@ -13,7 +13,7 @@ select lives_ok($$
     'RESET SYNTHETIC BASELINE','WI-007 reporting fixture test','wi007-reset-test'
   )
 $$,'report fixtures reset transactionally');
-select is((select count(*)::integer from public.crm_lead_states),49,'reset preserves the 48 leads plus one escalation lead');
+select is((select count(*)::integer from public.crm_lead_states),52,'reset preserves baseline, escalation and reviewable inbound lead states');
 select is((select count(*)::integer from public.crm_disposition_events where idempotency_key like 'wi007-callback-%'),3,'three callback timing cases are seeded');
 select is((select count(*)::integer from public.crm_disposition_events where idempotency_key like 'wi007-info-sent-%'),3,'three Info Sent timing cases are seeded');
 select is((select count(*)::integer from public.partner_transfers),0,'reporting reset does not pre-authorize partner transfers');

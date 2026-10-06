@@ -17,7 +17,7 @@ export async function POST(request: NextRequest, context: Context) {
   const webhook = process.env.N8N_PARTNER_IMPORT_WEBHOOK_URL;
   if (!webhook) {
     return NextResponse.json(
-      { detail: "WI-006 n8n webhook is not configured" },
+      { detail: "El procesamiento de importaciones no está configurado" },
       { status: 503 },
     );
   }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest, context: Context) {
     });
   } catch {
     return NextResponse.json(
-      { detail: "WI-006 n8n workflow is unavailable" },
+      { detail: "El procesamiento de importaciones no está disponible" },
       { status: 503 },
     );
   }

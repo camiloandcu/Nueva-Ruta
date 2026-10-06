@@ -37,6 +37,10 @@ test("the demo login uses Supabase password auth without public signup", () => {
   assert.doesNotMatch(actions, /\.signUp\(/);
   assert.match(actions, /supabase\.auth\.signOut\(\)/);
   assert.match(layout, /Cerrar sesión/);
+  assert.match(
+    readFileSync(new URL("../lib/auth/server.ts", import.meta.url), "utf8"),
+    /Server Components can read cookies but cannot write a refresh token/,
+  );
 });
 
 test("rule operations flow through authenticated FastAPI proxy", () => {
@@ -89,7 +93,10 @@ test("AI operations exposes exact safe execution dimensions", () => {
   assert.match(timeline, /correlation_id/);
   assert.match(timeline, /failure_layer/);
   assert.match(timeline, /normalized_reason/);
-  assert.doesNotMatch(timeline, /message|prompt|reasoning/);
+  assert.doesNotMatch(
+    timeline,
+    /original_body|redacted_body|prompt_version|reasoning/,
+  );
 });
 
 test("WI-005 CRM UI exposes documented dispositions, recovery, and guarded actions", () => {
@@ -106,10 +113,9 @@ test("WI-005 CRM UI exposes documented dispositions, recovery, and guarded actio
     ["No Answer", "Info Sent", "Transferido", "Call Back", "No le interesa"],
   );
   assert.match(crm, /callback_at/);
-  assert.match(
-    crm,
-    /Teléfono ficticio: \{lead\.fictional_phone \?\? "No disponible"\}/,
-  );
+  assert.match(crm, /Teléfono: \{lead\.fictional_phone \?\? "No disponible"\}/);
+  assert.match(crm, /Historial de disposiciones/);
+  assert.match(crm, /prior_stage.*resulting_stage/s);
   assert.match(crm, /disabled=\{\s*lead\.opted_out \|\|\s*!\s*\[/);
   assert.match(crm, /"prequalified"[\s\S]*"callback_scheduled"/);
   assert.match(crm, /delivery\.status === "dead_letter"/);
@@ -127,10 +133,11 @@ test("WI-006 import UI preserves synthetic-only boundary and dispatches through 
   );
   assert.match(screen, /synthetic_confirmation/);
   assert.ok(screen.includes("partner-imports/${jobId}/dispatch"));
-  assert.match(screen, /Valores originales:/);
+  assert.match(screen, /Valores conservados del archivo/);
+  assert.match(screen, /Qué cambió al limpiar el archivo/);
   assert.match(screen, /quality_issues/);
-  assert.match(screen, /Aceptar candidato/);
-  assert.match(screen, /Enlazar manualmente/);
+  assert.match(screen, /Confirmar coincidencia sugerida/);
+  assert.match(screen, /Vincular otro caso/);
   assert.match(screen, /Potencialmente comisionables/);
   assert.match(screen, /Revisión previa/);
   assert.match(screen, /aria-live="polite"/);
@@ -151,10 +158,18 @@ test("WI-007 reports use the authenticated FastAPI proxy and preserve attributio
     new URL("../app/operations/reports/reports-dashboard.tsx", import.meta.url),
     "utf8",
   );
+  const trace = readFileSync(
+    new URL(
+      "../app/operations/reports/enrollment-trace-item.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
   assert.match(dashboard, /\/api\/operations\/reports\/overview/);
-  assert.match(dashboard, /\/api\/operations\/reports\/enrollments/);
+  assert.match(dashboard, /EnrollmentTraceItem/);
+  assert.match(trace, /\/api\/operations\/reports\/enrollments/);
   assert.match(dashboard, /Denominador/);
-  assert.match(dashboard, /Sin atribución/);
+  assert.match(trace, /Sin atribución/);
   assert.match(dashboard, /no calcula dinero/i);
   assert.match(dashboard, /stalled_pagination/);
   assert.match(dashboard, /Siguiente/);
@@ -163,9 +178,9 @@ test("WI-007 reports use the authenticated FastAPI proxy and preserve attributio
     new URL("../app/operations/reports/page.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(page, /Métricas operativas/);
+  assert.match(page, /Datos y reporting/);
   const home = readFileSync(
-    new URL("../app/page.tsx", import.meta.url),
+    new URL("../app/home-workspace.tsx", import.meta.url),
     "utf8",
   );
   assert.match(home, /\/operations\/reports/);
@@ -176,14 +191,17 @@ test("WI-008 creator planning uses safe authenticated API contracts and role-gat
     new URL("../app/operations/creators/planning.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(planning, /\/api\/operations\/creators/);
+  assert.match(planning, /request<Creator\[]>\("creators"\)/);
   assert.match(planning, /content\/sources\/ranking/);
   assert.match(planning, /content\/scripts/);
   assert.match(planning, /creator-content\/access/);
-  assert.match(planning, /access\.can_author/);
-  assert.match(planning, /access\.can_review/);
-  assert.match(planning, /Prioridad descriptiva/);
-  assert.match(planning, /No hay acciones de publicación\s+o programación/);
+  assert.match(planning, /access\.data\?\.can_author/);
+  assert.match(planning, /access\.data\?\.can_review/);
+  assert.match(
+    planning,
+    /loadAccess\(\)[\s\S]*loadCreators\(\)[\s\S]*loadSources\(\)[\s\S]*loadScripts\(\)/,
+  );
+  assert.match(planning, /No se pudieron cargar/);
   assert.match(planning, /script_selectable/);
   assert.match(planning, /latest\.review\?\.reason/);
   assert.doesNotMatch(
@@ -194,10 +212,10 @@ test("WI-008 creator planning uses safe authenticated API contracts and role-gat
     new URL("../app/operations/creators/page.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(page, /WI-008/);
-  assert.match(page, /No\s+se publica, programa ni recopila/);
+  assert.match(page, /Sistema de contenido/);
+  assert.match(page, /guiones pendientes de revisión/);
   const home = readFileSync(
-    new URL("../app/page.tsx", import.meta.url),
+    new URL("../app/home-workspace.tsx", import.meta.url),
     "utf8",
   );
   assert.match(home, /\/operations\/creators/);

@@ -16,7 +16,7 @@ flowchart LR
     db --> reports[Reporting, reconciliation, content evidence]
 ```
 
-- Operators process leads, review drafts, resolve escalations, record dispositions, and prepare partner handoffs.
+- Operators move through **Bandeja → Casos → Operación → Resultados**, with case-specific evidence and clearly labeled global queues. Every case has a stable `LEAD-…` label; its UUID remains available for audit.
 - Supervisors publish versioned rules, approve transfers and review actions, manage recovery, and reset synthetic demo state.
 - Analysts see attribution-safe reporting and reconciliation evidence.
 - No substantive message or partner transfer bypasses human authorization.
@@ -42,6 +42,7 @@ Keep AI set to `deterministic` for a no-provider demo. Never paste real lead inf
 | `make verify` | Check web, API, n8n, simulator, UI→API, and authenticated SSR smoke paths |
 | `make reset` | Reapply local migrations/seeds and bootstrap synthetic identities |
 | `make test-db` | Run Supabase database integration tests |
+| `pnpm --filter @nueva-ruta/web test:e2e` | Run authenticated Chromium case-flow tests against the running local stack |
 | `make quality` | Format, lint, typecheck, Python/UI tests, and repository-boundary checks |
 | `pnpm --dir apps/web build` | Build the Next.js application |
 
@@ -59,13 +60,14 @@ Local URLs: web <http://localhost:3000>, API docs <http://localhost:8000/docs>, 
 
 WI-009 defines a short-lived, authenticated synthetic demo on Railway + Supabase Cloud, approved up to USD 7 total and expiring **2026-10-09 at 23:59 America/Bogota**. It remains conditional on a verifiable cost path within that cap. Only the web UI may be public; API, n8n, and simulator remain private. No live AI or real lead data is used. The local stack remains authoritative. See [temporary demo operations](docs/09_TEMPORARY_DEMO.md).
 
+The authenticated [temporary demo](https://web-demo-ffe2.up.railway.app/) serves Intake, case-centered CRM, reconciliation, and reporting with inline enrollment origin. Access requires an assigned demo account; local `.env` credentials are not interchangeable with hosted credentials.
+
 ## Documentation
 
 - [Architecture and operations](docs/07_ARCHITECTURE_OPERATIONS.md)
 - [Compliance and AI boundary](docs/planning/06_COMPLIANCE_AND_AI.md) · [AI-use guide](docs/08_AI_USE.md)
 - [Partner data cleaning and reconciliation](docs/10_PARTNER_DATA_CLEANING.md)
 - [Synthetic load method and report](docs/11_SCALE_REPORT.md)
-- [Six-minute Spanish demo and recording checklist](docs/12_DEMO_SCRIPT.md)
 - [Product and requirements index](docs/planning/00_INDEX.md) · [work items](docs/planning/08_WORK_ITEMS.md) · [decision log](docs/planning/07_DECISIONS.md)
 - [Implementation verification reports](docs/implementation/)
 - [n8n workflow export/import notes](infra/n8n/workflows/README.md)

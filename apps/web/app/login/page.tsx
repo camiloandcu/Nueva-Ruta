@@ -9,10 +9,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="auth-shell">
-      <div className="eyebrow">Acceso privado · WI-009</div>
+      <div className="eyebrow">Acceso privado</div>
       <h1>Ingresar</h1>
       <p>
-        Usa una cuenta demo asignada. El registro público está deshabilitado.
+        Ingresa con la cuenta asignada a tu rol. El registro público está
+        deshabilitado.
       </p>
       <form action={signIn} className="auth-form">
         <label>

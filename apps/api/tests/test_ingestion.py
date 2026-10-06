@@ -5,14 +5,48 @@ from typing import Any
 
 import httpx
 import pytest
-from nueva_ruta_api.ai_assistance import run_assistance, validate_output
+from nueva_ruta_api.ai_assistance import (
+    assistance_request,
+    response_text,
+    run_assistance,
+    validate_output,
+)
 from nueva_ruta_api.config import Settings
+from nueva_ruta_api.ingestion_api import redacted_leads
 from nueva_ruta_api.ingestion_models import InboundEvent
 from nueva_ruta_api.ingestion_service import process_event, safe_log_fields
 from nueva_ruta_api.redaction import redact
 from nueva_ruta_api.triage import classify, extract_fields
 
 SETTINGS = Settings("http://db.invalid", "anon", "service")
+
+
+@pytest.mark.asyncio
+async def test_redacted_leads_include_approved_extraction(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Store:
+        async def rows(self, table: str, *, order: str) -> list[dict[str, Any]]:
+            assert table == "operational_redacted_leads"
+            return [{"decision_id": "decision-1"}, {"decision_id": "decision-2"}]
+
+        async def select_rows(
+            self, table: str, *, select: str, filters: dict[str, str]
+        ) -> list[dict[str, Any]]:
+            assert table == "extracted_lead_fields"
+            assert filters == {"decision_id": "in.(decision-1,decision-2)"}
+            return [
+                {
+                    "decision_id": "decision-1",
+                    "approved_fields": {"state": "TX"},
+                    "source": "deterministic",
+                }
+            ]
+
+    monkeypatch.setattr("nueva_ruta_api.ingestion_api.IngestionStore", lambda settings: Store())
+    result = await redacted_leads(None, SETTINGS)  # type: ignore[arg-type]
+    assert result[0]["extracted_fields"] == {"state": "TX"}
+    assert result[0]["extraction_source"] == "deterministic"
+    assert result[1]["extracted_fields"] is None
+    assert result[1]["extraction_source"] is None
 
 
 def event(message: str, event_id: str = "fixture-1") -> InboundEvent:
@@ -146,7 +180,8 @@ async def test_transport_taxonomy(failure: Exception, layer: str, reason: str) -
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "status_code,reason", [(401, "authentication"), (429, "rate_limit"), (503, "provider_5xx")]
+    "status_code,reason",
+    [(400, "invalid_request"), (401, "authentication"), (429, "rate_limit"), (503, "provider_5xx")],
 )
 async def test_provider_taxonomy(status_code: int, reason: str) -> None:
     request = httpx.Request("POST", "https://provider.invalid")
@@ -177,6 +212,44 @@ def test_output_validation_taxonomy(raw: str, reason: str) -> None:
 def test_prohibited_language_is_rejected() -> None:
     with pytest.raises(PermissionError, match="claim_guarantee"):
         validate_output(valid_output(draft="Garantizamos que tu deuda desaparecerá"))
+
+
+def test_openai_request_is_redaction_bounded_and_not_stored() -> None:
+    request = assistance_request("gpt-6-luna", "Tengo [REDACTED_ACCOUNT]")
+    assert request["model"] == "gpt-6-luna"
+    assert request["store"] is False
+    assert "human review" in str(request["instructions"])
+    assert request["text"]["format"]["strict"] is True
+    assert "never repeat numbers, dollar amounts or percentages" in request["instructions"]
+    schema = request["text"]["format"]["schema"]
+    assert schema["required"] == list(schema["properties"])
+    fields = schema["properties"]["fields"]
+    assert fields["required"] == list(fields["properties"])
+    assert schema["properties"]["draft"]["type"] == ["string", "null"]
+    assert schema["properties"]["confidence"]["maximum"] == 1
+    assert fields["properties"]["state"]["pattern"] == "^[A-Z]{2}$"
+    output = '{"classification":"respond"}'
+    assert response_text({"output_text": output}) == output
+
+
+@pytest.mark.asyncio
+async def test_schema_rejection_identifies_safe_field_without_storing_model_text() -> None:
+    configured = Settings(
+        "http://db",
+        "anon",
+        "service",
+        ai_provider="openai",
+        openai_api_key="test",
+        openai_model="gpt-6-luna",
+    )
+    raw = valid_output(fields={"state": "Texas"})
+    attempt = await run_assistance(configured, "Synthetic inquiry", RawAdapter(raw))
+    assert attempt.normalized_reason == "invalid_schema:fields.state"
+    assert attempt.safe_metadata == {
+        "validation_field": "fields.state",
+        "validation_type": "string_pattern_mismatch",
+    }
+    assert "Texas" not in str(attempt.safe_metadata)
 
 
 @pytest.mark.asyncio

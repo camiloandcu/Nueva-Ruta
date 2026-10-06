@@ -4,3 +4,4 @@ select private.seed_synthetic_baseline();
 select private.seed_wi005_synthetic_fixtures(null);
 select private.seed_wi006_partner_analysis();
 select private.seed_wi008_creator_content(null);
+select private.seed_demo_workflow_evidence();

@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { signOut } from "@/app/login/actions";
 import { createSupabaseServerClient } from "@/lib/auth/server";
+import AppNavigation from "./app-navigation";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,10 +26,13 @@ export default async function RootLayout({
             Nueva Ruta
           </Link>
           {data.user ? (
-            <form action={signOut}>
-              <span>{data.user.email}</span>
-              <button type="submit">Cerrar sesión</button>
-            </form>
+            <>
+              <AppNavigation />
+              <form action={signOut}>
+                <span>{data.user.email}</span>
+                <button type="submit">Cerrar sesión</button>
+              </form>
+            </>
           ) : (
             <Link href="/login">Ingresar</Link>
           )}

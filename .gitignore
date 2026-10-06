@@ -8,6 +8,9 @@
 node_modules/
 .next/
 coverage/
+test-results/
+playwright-report/
+/demo-flujo-completo.webm
 *.tsbuildinfo
 
 # Python

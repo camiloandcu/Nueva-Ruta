@@ -7,7 +7,7 @@ export default async function ReportsPage() {
   const { data } = await supabase.auth.getSession();
   return (
     <main className="operations-shell">
-      <div className="eyebrow">Métricas operativas · WI-007</div>
+      <div className="eyebrow">Datos y reporting</div>
       <h1>Flujo, pendientes y atribución</h1>
       <p>
         Volúmenes y riesgos descriptivos; no son una predicción causal ni una

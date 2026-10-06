@@ -8,6 +8,11 @@ type Version = {
   content_hash: string;
   active: boolean;
   published_at: string;
+  content: {
+    escalation: { sla_minutes: number };
+    retry_policy: { maximum_attempts: number };
+    feature_flags: { automatic_messages_enabled: boolean };
+  };
 };
 
 type Draft = {
@@ -38,10 +43,21 @@ export default function RuleReview() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [changes, setChanges] = useState<Change[]>([]);
   const [message, setMessage] = useState("Cargando historial…");
+  const [slaMinutes, setSlaMinutes] = useState("30");
+  const [maximumAttempts, setMaximumAttempts] = useState("3");
+  const [automaticMessages, setAutomaticMessages] = useState(false);
 
   async function refresh() {
     const history = await jsonRequest<Version[]>("/api/rules/versions");
     setVersions(history);
+    const active = history.find((version) => version.active);
+    if (active) {
+      setSlaMinutes(String(active.content.escalation.sla_minutes));
+      setMaximumAttempts(String(active.content.retry_policy.maximum_attempts));
+      setAutomaticMessages(
+        active.content.feature_flags.automatic_messages_enabled,
+      );
+    }
     setMessage(
       history.length
         ? "Historial actualizado."
@@ -53,6 +69,16 @@ export default function RuleReview() {
     jsonRequest<Version[]>("/api/rules/versions")
       .then((history) => {
         setVersions(history);
+        const active = history.find((version) => version.active);
+        if (active) {
+          setSlaMinutes(String(active.content.escalation.sla_minutes));
+          setMaximumAttempts(
+            String(active.content.retry_policy.maximum_attempts),
+          );
+          setAutomaticMessages(
+            active.content.feature_flags.automatic_messages_enabled,
+          );
+        }
         setMessage(
           history.length
             ? "Historial actualizado."
@@ -62,12 +88,15 @@ export default function RuleReview() {
       .catch((error: Error) => setMessage(error.message));
   }, []);
 
-  async function importYaml() {
+  async function importYaml(document = yaml) {
     try {
       const imported = await jsonRequest<Draft>("/api/rules/drafts/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ yaml, source_name: "rule-review-editor.yaml" }),
+        body: JSON.stringify({
+          yaml: document,
+          source_name: "rule-review-editor.yaml",
+        }),
       });
       const diff = await jsonRequest<{ changes: Change[]; duplicate: boolean }>(
         `/api/rules/drafts/${imported.id}/diff`,
@@ -84,6 +113,34 @@ export default function RuleReview() {
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "No se pudo importar el YAML.",
+      );
+    }
+  }
+
+  async function prepareGuidedChange() {
+    const active = versions.find((version) => version.active);
+    if (!active) return;
+    try {
+      const response = await fetch(`/api/rules/versions/${active.id}/export`);
+      if (!response.ok) throw new Error("No se pudo cargar la regla activa.");
+      let document = await response.text();
+      document = document
+        .replace(/^  sla_minutes: .*$/m, `  sla_minutes: ${Number(slaMinutes)}`)
+        .replace(
+          /^  maximum_attempts: .*$/m,
+          `  maximum_attempts: ${Number(maximumAttempts)}`,
+        )
+        .replace(
+          /^  automatic_messages_enabled: .*$/m,
+          `  automatic_messages_enabled: ${automaticMessages}`,
+        );
+      setYaml(document);
+      await importYaml(document);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No se pudo preparar el cambio.",
       );
     }
   }
@@ -144,6 +201,45 @@ export default function RuleReview() {
 
   return (
     <div className="rule-grid">
+      <section className="panel guided-rule-panel">
+        <span className="section-kicker">Cambio guiado</span>
+        <h2>Ajustar reglas operativas</h2>
+        <p>
+          Prepara una nueva versión y revisa las diferencias antes de
+          publicarla.
+        </p>
+        <label>
+          SLA de escalación (minutos)
+          <input
+            type="number"
+            min="1"
+            max="1440"
+            value={slaMinutes}
+            onChange={(event) => setSlaMinutes(event.target.value)}
+          />
+        </label>
+        <label>
+          Máximo de intentos de entrega
+          <input
+            type="number"
+            min="1"
+            max="10"
+            value={maximumAttempts}
+            onChange={(event) => setMaximumAttempts(event.target.value)}
+          />
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={automaticMessages}
+            onChange={(event) => setAutomaticMessages(event.target.checked)}
+          />
+          Activar mensajes transaccionales permitidos
+        </label>
+        <button type="button" onClick={() => void prepareGuidedChange()}>
+          Preparar y comparar cambio
+        </button>
+      </section>
       <section className="panel">
         <h2>Versiones publicadas</h2>
         <ol className="history">
@@ -167,17 +263,24 @@ export default function RuleReview() {
         </ol>
       </section>
       <section className="panel">
-        <h2>Importar borrador YAML</h2>
-        <textarea
-          aria-label="Documento de reglas YAML"
-          value={yaml}
-          onChange={(event) => setYaml(event.target.value)}
-          placeholder="schema_version: 1"
-          rows={16}
-        />
-        <button type="button" onClick={importYaml} disabled={!yaml.trim()}>
-          Validar e importar
-        </button>
+        <details>
+          <summary>Edición avanzada en YAML</summary>
+          <h2>Documento de reglas</h2>
+          <textarea
+            aria-label="Documento de reglas YAML"
+            value={yaml}
+            onChange={(event) => setYaml(event.target.value)}
+            placeholder="schema_version: 1"
+            rows={16}
+          />
+          <button
+            type="button"
+            onClick={() => void importYaml()}
+            disabled={!yaml.trim()}
+          >
+            Validar e importar
+          </button>
+        </details>
         <p aria-live="polite">{message}</p>
         {draft?.validation_issues.map((issue) => (
           <p className="issue" key={`${issue.path}-${issue.code}`}>

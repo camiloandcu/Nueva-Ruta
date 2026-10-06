@@ -34,7 +34,7 @@ The premature monolithic `build-nueva-ruta-ops` change was deleted with explicit
 
 ## Release evidence
 
-Current operational docs live under `docs/`: [architecture and operations](../07_ARCHITECTURE_OPERATIONS.md), [AI-use guide](../08_AI_USE.md), [temporary demo runbook](../09_TEMPORARY_DEMO.md), [partner-data cleaning](../10_PARTNER_DATA_CLEANING.md), [scale report](../11_SCALE_REPORT.md), and [timed demo script](../12_DEMO_SCRIPT.md).
+Current operational docs live under `docs/`: [architecture and operations](../07_ARCHITECTURE_OPERATIONS.md), [AI-use guide](../08_AI_USE.md), [temporary demo runbook](../09_TEMPORARY_DEMO.md), [partner-data cleaning](../10_PARTNER_DATA_CLEANING.md), and [scale report](../11_SCALE_REPORT.md).
 
 ## Review checklist
 

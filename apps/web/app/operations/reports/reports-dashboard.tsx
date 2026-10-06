@@ -1,7 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import {
+  channelLabel,
+  reasonLabel,
+  statusLabel,
+} from "../../../lib/operational-labels";
+import EnrollmentTraceItem, {
+  type EnrollmentSummary,
+} from "./enrollment-trace-item";
 
 type FunnelStage = {
   stage: string;
@@ -10,17 +19,10 @@ type FunnelStage = {
   conversion_percent: number | null;
   received_cohort_percent?: number | null;
 };
-type EvidenceLink = {
-  canonical_enrollment_id: string;
-  partner_enrollment_id: string | null;
-  status: string;
-  conflict_flags: string[];
-  source_row_numbers: number[];
-  potentially_commissionable: boolean;
-};
 type StalledItem = {
   kind: string;
   entity_id: string;
+  lead_id: string | null;
   business_id: string | null;
   reason: string;
   age: number | null;
@@ -64,7 +66,7 @@ type Report = {
     potentially_commissionable: number;
     proxy_blockers: Record<string, number>;
     quality_issues: Record<string, number>;
-    evidence_links: EvidenceLink[];
+    evidence_links: EnrollmentSummary[];
     scope_note: string;
   };
   stalled: StalledItem[];
@@ -76,30 +78,11 @@ type Report = {
     previous_offset: number | null;
   };
 };
-type EnrollmentEvidence = {
-  canonical_enrollment_id: string;
-  partner_enrollment_id: string | null;
-  source_row_numbers: number[];
-  quality_issues: string[];
-  conflicted: boolean;
-  reconciliation: {
-    status: string;
-    match_method: string | null;
-    conflict_flags: string[];
-    potentially_commissionable: boolean;
-    evidence: Record<string, unknown>;
-  } | null;
-  source_rows: {
-    row_number: number;
-    row_checksum: string;
-    import_job_id: string;
-  }[];
-  lead: {
-    business_id: string;
-    creator_business_id: string | null;
-    channel: string;
-    commercial_stage: string;
-  } | null;
+type FilterOptions = {
+  creators: string[];
+  channels: string[];
+  states: string[];
+  can_open_crm: boolean;
 };
 
 const stageLabels: Record<string, string> = {
@@ -141,9 +124,26 @@ export default function ReportsDashboard() {
     stalled_offset: "0",
   });
   const [report, setReport] = useState<Report | null>(null);
-  const [evidence, setEvidence] = useState<EnrollmentEvidence | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(
+    null,
+  );
+  const [filterOptionsError, setFilterOptionsError] = useState(false);
+  const [visibleEnrollments, setVisibleEnrollments] = useState(8);
+
+  const loadFilterOptions = useCallback(async () => {
+    setFilterOptionsError(false);
+    try {
+      const response = await fetch("/api/operations/reports/filter-options", {
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("Filter options unavailable");
+      setFilterOptions((await response.json()) as FilterOptions);
+    } catch {
+      setFilterOptionsError(true);
+    }
+  }, []);
 
   const loadReport = useCallback(async (values: typeof filters) => {
     setBusy(true);
@@ -182,7 +182,8 @@ export default function ReportsDashboard() {
       stalled_offset: "0",
     };
     void Promise.resolve().then(() => loadReport(initialFilters));
-  }, [loadReport]);
+    void Promise.resolve().then(() => loadFilterOptions());
+  }, [loadReport, loadFilterOptions]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -197,6 +198,7 @@ export default function ReportsDashboard() {
       stalled_offset: "0",
     };
     setFilters(next);
+    setVisibleEnrollments(8);
     await loadReport(next);
   }
 
@@ -204,27 +206,6 @@ export default function ReportsDashboard() {
     const next = { ...filters, stalled_offset: String(offset) };
     setFilters(next);
     await loadReport(next);
-  }
-
-  async function openEvidence(id: string) {
-    setEvidence(null);
-    setError(null);
-    try {
-      const response = await fetch(
-        `/api/operations/reports/enrollments/${id}`,
-        { cache: "no-store" },
-      );
-      const payload = await response.json();
-      if (!response.ok)
-        throw new Error(payload.detail ?? "No fue posible abrir la evidencia.");
-      setEvidence(payload as EnrollmentEvidence);
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "No fue posible abrir la evidencia.",
-      );
-    }
   }
 
   return (
@@ -262,12 +243,9 @@ export default function ReportsDashboard() {
             }
           >
             <option value="">Todos</option>
-            {[1, 2, 3, 4, 5].map((number) => (
-              <option
-                key={number}
-                value={`CR-${String(number).padStart(3, "0")}`}
-              >
-                CR-{String(number).padStart(3, "0")}
+            {filterOptions?.creators.map((creator) => (
+              <option key={creator} value={creator}>
+                {creator}
               </option>
             ))}
           </select>
@@ -282,8 +260,11 @@ export default function ReportsDashboard() {
             }
           >
             <option value="">Todos</option>
-            <option value="ctwa">CTWA</option>
-            <option value="organic">Orgánico</option>
+            {filterOptions?.channels.map((channel) => (
+              <option key={channel} value={channel}>
+                {channelLabel(channel)}
+              </option>
+            ))}
           </select>
         </label>
         <label>
@@ -296,15 +277,30 @@ export default function ReportsDashboard() {
             }
           >
             <option value="">Todos</option>
-            <option value="CA">California</option>
-            <option value="TX">Texas</option>
-            <option value="FL">Florida</option>
+            {filterOptions?.states.map((state) => (
+              <option key={state} value={state}>
+                {(
+                  { CA: "California", TX: "Texas", FL: "Florida" } as Record<
+                    string,
+                    string
+                  >
+                )[state] ?? state}
+              </option>
+            ))}
           </select>
         </label>
         <button type="submit" disabled={busy}>
           {busy ? "Actualizando…" : "Aplicar filtros"}
         </button>
       </form>
+      {filterOptionsError && (
+        <p role="alert" className="report-note">
+          No se pudieron cargar las opciones de filtro.{" "}
+          <button type="button" onClick={() => void loadFilterOptions()}>
+            Reintentar filtros
+          </button>
+        </p>
+      )}
       <p className="report-note">
         Fechas de leads según recepción ·{" "}
         {report?.filters.reporting_timezone ?? "America/New_York"}. Los totales
@@ -317,7 +313,7 @@ export default function ReportsDashboard() {
       )}
       {!report && !error && (
         <section className="panel" aria-live="polite">
-          Cargando métricas sintéticas…
+          Cargando métricas…
         </section>
       )}
       {report && (
@@ -355,7 +351,12 @@ export default function ReportsDashboard() {
               Conteos únicos por etapa. Cada conversión muestra su denominador
               inmediato y la proporción del cohorte recibido.
             </p>
-            <div className="table-scroll">
+            <div
+              className="table-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label="Embudo de leads; desplázate horizontalmente para ver todas las columnas"
+            >
               <table>
                 <thead>
                   <tr>
@@ -388,7 +389,7 @@ export default function ReportsDashboard() {
                 {Object.entries(report.decisions.distribution).map(
                   ([reason, count]) => (
                     <li key={reason}>
-                      <span>{reason}</span>
+                      <span>{reasonLabel(reason)}</span>
                       <strong>{count}</strong>
                     </li>
                   ),
@@ -440,28 +441,38 @@ export default function ReportsDashboard() {
                   <strong>{report.partner.unmatched}</strong>
                 </li>
               </ul>
-              <h3>Bloqueadores del proxy</h3>
-              <ul className="metric-list">
-                {Object.entries(report.partner.proxy_blockers).map(
-                  ([key, count]) => (
-                    <li key={key}>
-                      <span>{key}</span>
-                      <strong>{count}</strong>
-                    </li>
-                  ),
-                )}
-              </ul>
-              <h3>Defectos de importación</h3>
-              <ul className="metric-list">
-                {Object.entries(report.partner.quality_issues).map(
-                  ([key, count]) => (
-                    <li key={key}>
-                      <span>{key}</span>
-                      <strong>{count}</strong>
-                    </li>
-                  ),
-                )}
-              </ul>
+              <details className="report-detail-group">
+                <summary>
+                  Bloqueadores del proxy (
+                  {Object.keys(report.partner.proxy_blockers).length})
+                </summary>
+                <ul className="metric-list">
+                  {Object.entries(report.partner.proxy_blockers).map(
+                    ([key, count]) => (
+                      <li key={key}>
+                        <span>{reasonLabel(key)}</span>
+                        <strong>{count}</strong>
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </details>
+              <details className="report-detail-group">
+                <summary>
+                  Defectos de importación (
+                  {Object.keys(report.partner.quality_issues).length})
+                </summary>
+                <ul className="metric-list">
+                  {Object.entries(report.partner.quality_issues).map(
+                    ([key, count]) => (
+                      <li key={key}>
+                        <span>{reasonLabel(key)}</span>
+                        <strong>{count}</strong>
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </details>
               <p className="report-note">{report.partner.scope_note}</p>
             </article>
           </section>
@@ -473,8 +484,13 @@ export default function ReportsDashboard() {
               comienza al 80 %; callbacks, dentro de 15 minutos del horario.
             </p>
             {report.stalled.length ? (
-              <div className="table-scroll">
-                <table>
+              <div
+                className="table-scroll"
+                tabIndex={0}
+                role="region"
+                aria-label="Trabajo estancado; desplázate horizontalmente para ver todas las columnas"
+              >
+                <table className="stalled-table">
                   <thead>
                     <tr>
                       <th>Elemento</th>
@@ -490,15 +506,25 @@ export default function ReportsDashboard() {
                   <tbody>
                     {report.stalled.map((item) => (
                       <tr key={`${item.kind}-${item.entity_id}`}>
-                        <td>{item.business_id ?? item.entity_id}</td>
-                        <td>{item.reason}</td>
+                        <td>
+                          {filterOptions?.can_open_crm &&
+                          item.lead_id &&
+                          item.business_id ? (
+                            <Link href={`/operations/crm?lead=${item.lead_id}`}>
+                              {item.business_id} · Abrir caso
+                            </Link>
+                          ) : (
+                            (item.business_id ?? item.entity_id)
+                          )}
+                        </td>
+                        <td>{reasonLabel(item.reason)}</td>
                         <td>{elapsed(item.age, item.age_unit)}</td>
                         <td>
                           {item.threshold} {item.threshold_unit}
                         </td>
                         <td>
                           <span className={`badge badge-${item.status}`}>
-                            {item.status}
+                            {statusLabel(item.status)}
                           </span>
                         </td>
                         <td>
@@ -553,81 +579,35 @@ export default function ReportsDashboard() {
 
           <section className="report-panel">
             <h2>Trazabilidad de inscripciones</h2>
+            <p>
+              Origen, calidad y conciliación se muestran junto a cada
+              inscripción.
+            </p>
             {report.partner.evidence_links.length ? (
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID del socio</th>
-                      <th>Filas fuente</th>
-                      <th>Estado</th>
-                      <th>Bloqueos</th>
-                      <th>Proxy</th>
-                      <th>Evidencia</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.partner.evidence_links.map((item) => (
-                      <tr key={item.canonical_enrollment_id}>
-                        <td>{item.partner_enrollment_id ?? "Sin ID"}</td>
-                        <td>{item.source_row_numbers.join(", ")}</td>
-                        <td>{item.status}</td>
-                        <td>{item.conflict_flags.join(", ") || "—"}</td>
-                        <td>{item.potentially_commissionable ? "Sí" : "No"}</td>
-                        <td>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void openEvidence(item.canonical_enrollment_id)
-                            }
-                          >
-                            Ver origen
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ol className="enrollment-trace-list">
+                {report.partner.evidence_links
+                  .slice(0, visibleEnrollments)
+                  .map((item) => (
+                    <EnrollmentTraceItem
+                      key={item.canonical_enrollment_id}
+                      item={item}
+                      canOpenCrm={Boolean(filterOptions?.can_open_crm)}
+                    />
+                  ))}
+              </ol>
             ) : (
               <p>Sin inscripciones dentro del rango.</p>
             )}
-            {evidence && (
-              <div className="evidence-card" aria-live="polite">
-                <h3>
-                  Origen canónico {evidence.partner_enrollment_id ?? "sin ID"}
-                </h3>
-                <p>
-                  Filas: {evidence.source_row_numbers.join(", ") || "—"}.
-                  Calidad:{" "}
-                  {evidence.quality_issues.join(", ") ||
-                    "sin defectos reportados"}
-                  .
-                </p>
-                <p>
-                  Estado: {evidence.reconciliation?.status ?? "sin caso"};
-                  método:{" "}
-                  {evidence.reconciliation?.match_method ??
-                    "sin match automático"}
-                  ; link comisionable:{" "}
-                  {evidence.reconciliation?.potentially_commissionable
-                    ? "sí"
-                    : "no"}
-                  .
-                </p>
-                <p>
-                  Lead: {evidence.lead?.business_id ?? "sin enlace"}; canal:{" "}
-                  {evidence.lead?.channel ?? "—"}; creador original:{" "}
-                  {evidence.lead?.creator_business_id ?? "Sin atribución"}.
-                </p>
-                <ul>
-                  {evidence.source_rows.map((row) => (
-                    <li key={`${row.import_job_id}-${row.row_number}`}>
-                      Fila {row.row_number} · checksum {row.row_checksum}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {report.partner.evidence_links.length > visibleEnrollments && (
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={() => setVisibleEnrollments((count) => count + 8)}
+              >
+                Mostrar 8 inscripciones más ·{" "}
+                {report.partner.evidence_links.length - visibleEnrollments}{" "}
+                pendientes
+              </button>
             )}
           </section>
         </>
