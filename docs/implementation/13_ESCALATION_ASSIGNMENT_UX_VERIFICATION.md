@@ -13,9 +13,9 @@ Status: locally verified and deployed from `feat/demo-ux-email-criteria`, 2026-1
 ## Verification
 
 - `pnpm quality`: formatting, lint, types, 12 web checks, 106 Python tests, and repository checks passed.
-- `pnpm --dir apps/web test:e2e`: 10 authenticated Chromium tests passed; the optional recording test was skipped during the ordinary suite.
+- `pnpm --dir apps/web test:e2e`: 10 authenticated Chromium tests passed.
 - `make verify`: web, API, n8n, simulator, UI-to-API, and authenticated SSR checks passed.
 - The two new escalation browser tests checked the operator's own-case filter, priority distinction, role-gated controls, explicit supervisor assignment, and stable neighbor height.
-- `RECORD_EVALUATOR_VIDEO=1 pnpm --dir apps/web exec playwright test e2e/evaluator-video.spec.ts` recorded the operator path from Intake approval through CRM delivery and disposition to escalation, reports, and reconciliation. The root `demo-flujo-completo.webm` is 22.24 seconds and ignored by Git.
+- A one-time Playwright recording captured the operator path from Intake approval through CRM delivery and disposition to escalation, reports, and reconciliation. The replacement root `demo-flujo-completo.webm` is 191.84 seconds, uses slower cursor movement and scrolling, and is ignored by Git. The temporary recording spec was removed after capture.
 
 Railway demo web and API both deployed commit `9cad640` successfully. The public web `/api/health` returned `{"service":"web","status":"alive"}`. Hosted authenticated UI remains unverified because its assigned test credentials are unavailable here. Local Docker remains running for review.
