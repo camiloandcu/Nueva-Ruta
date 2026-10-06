@@ -17,7 +17,7 @@ const links = [
     roles: ["operator", "supervisor"],
   },
   {
-    href: "/operations/crm#escalations",
+    href: "/operations/work",
     label: "Operación",
     roles: ["operator", "supervisor"],
   },

@@ -88,3 +88,24 @@ async def test_partner_import_rejects_analyst_upload_and_non_synthetic_declarati
         )
     assert rejected.status_code == 422
     assert review_denied.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_reconciliation_manual_choices_are_business_labeled_and_reviewer_only(
+    monkeypatch,
+) -> None:
+    async def select_rows(self, table, *, select, order):
+        del self
+        assert table == "operational_crm_leads"
+        assert select == "id,business_id,commercial_stage"
+        assert order == "business_id.asc"
+        return [{"id": str(USER), "business_id": "LEAD-001", "commercial_stage": "new"}]
+
+    monkeypatch.setattr(IngestionStore, "select_rows", select_rows)
+    async with client_for(Role.OPERATOR) as client:
+        denied = client.get("/v1/partner-imports/reconciliation/available-leads")
+    async with client_for(Role.ANALYST) as client:
+        allowed = client.get("/v1/partner-imports/reconciliation/available-leads")
+    assert denied.status_code == 403
+    assert allowed.status_code == 200
+    assert allowed.json()[0]["business_id"] == "LEAD-001"

@@ -18,9 +18,9 @@ test("approved intake draft appears in CRM and delivery evidence advances only i
 
   await page.goto("/operations/review");
   await page.getByRole("button", { name: "Ingresar mensaje" }).click();
-  await expect(
-    page.getByText("Entrada registrada y clasificada"),
-  ).toBeVisible();
+  await expect(page.getByText("Entrada registrada y clasificada")).toBeVisible({
+    timeout: 15_000,
+  });
   const label = await page.locator(".case-identity strong").innerText();
   await page.getByRole("button", { name: "Aprobar sin entregar" }).click();
   await expect(page.getByText("Borrador aprobado y auditado")).toBeVisible();

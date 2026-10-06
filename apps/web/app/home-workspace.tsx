@@ -37,7 +37,7 @@ const areas = [
       "Atiende escalaciones, recuperación y entregas pendientes de toda la operación.",
     links: [
       {
-        href: "/operations/crm#escalations",
+        href: "/operations/work",
         label: "Abrir colas globales",
         roles: ["operator", "supervisor"],
       },

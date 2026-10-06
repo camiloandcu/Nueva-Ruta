@@ -133,11 +133,11 @@ test("WI-006 import UI preserves synthetic-only boundary and dispatches through 
   );
   assert.match(screen, /synthetic_confirmation/);
   assert.ok(screen.includes("partner-imports/${jobId}/dispatch"));
-  assert.match(screen, /Valores normalizados:/);
-  assert.match(screen, /Evidencia de transformación/);
+  assert.match(screen, /Valores conservados del archivo/);
+  assert.match(screen, /Qué cambió al limpiar el archivo/);
   assert.match(screen, /quality_issues/);
-  assert.match(screen, /Aceptar candidato/);
-  assert.match(screen, /Enlazar manualmente/);
+  assert.match(screen, /Confirmar coincidencia sugerida/);
+  assert.match(screen, /Vincular otro caso/);
   assert.match(screen, /Potencialmente comisionables/);
   assert.match(screen, /Revisión previa/);
   assert.match(screen, /aria-live="polite"/);

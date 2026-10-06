@@ -36,16 +36,28 @@ test("task navigation opens a case and global queues show their own case context
   }
   await areas.getByRole("link", { name: "Abrir casos CRM" }).click();
   await expect(page.getByText("Siguiente paso:")).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "Navegación principal" })
+    .getByRole("link", { name: "Operación" })
+    .click();
+  await expect(page).toHaveURL(/\/operations\/work$/);
   await expect(
     page.getByRole("heading", { name: "Escalaciones de toda la operación" }),
   ).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "Colas de la operación" })
+    .getByRole("link", { name: /Entregas/ })
+    .click();
+  await expect(page).toHaveURL(/#partner-deliveries$/);
+  await expect(
+    page.getByRole("heading", {
+      name: "Entregas al socio de toda la operación",
+    }),
+  ).toBeInViewport();
   const queueLinks = page.locator(
     ".crm-operations-panel a[href^='/operations/crm?lead=']",
   );
   if (await queueLinks.count()) {
-    const startingCase = await page
-      .getByRole("combobox", { name: "Caso", exact: true })
-      .inputValue();
     const href = await queueLinks.first().getAttribute("href");
     await queueLinks.first().click();
     await expect(page).toHaveURL(new RegExp(`${href?.replace("?", "\\?")}$`));
@@ -54,18 +66,18 @@ test("task navigation opens a case and global queues show their own case context
       page.getByRole("combobox", { name: "Caso", exact: true }),
     ).toHaveValue(caseId ?? "");
     await page.goBack();
-    await expect(page).toHaveURL(/\/operations\/crm$/);
-    await expect(
-      page.getByRole("combobox", { name: "Caso", exact: true }),
-    ).toHaveValue(startingCase);
+    await expect(page).toHaveURL(/\/operations\/work$/);
   }
   await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.getByText("Cargando sección…")).toHaveCount(0);
   await page.screenshot({
     path: "/tmp/influgain-workspace-desktop.png",
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByText("Siguiente paso:")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Escalaciones de toda la operación" }),
+  ).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -75,9 +87,19 @@ test("task navigation opens a case and global queues show their own case context
     path: "/tmp/influgain-workspace-mobile.png",
     fullPage: true,
   });
+  const showMore = page.getByRole("button", {
+    name: /Mostrar 8 escalaciones más/,
+  });
+  if (await showMore.isVisible()) {
+    const countBefore = await page.locator(".escalation-card").count();
+    await showMore.click();
+    expect(await page.locator(".escalation-card").count()).toBeGreaterThan(
+      countBefore,
+    );
+  }
 });
 
-test("one failed queue retries without hiding the selected case", async ({
+test("one failed queue retries without hiding other operation queues", async ({
   page,
 }) => {
   let fail = true;
@@ -89,8 +111,12 @@ test("one failed queue retries without hiding the selected case", async ({
     }
     await route.continue();
   });
-  await page.goto("/operations/crm");
-  await expect(page.getByText("Siguiente paso:")).toBeVisible();
+  await page.goto("/operations/work");
+  await expect(
+    page.getByRole("heading", {
+      name: "Entregas al socio de toda la operación",
+    }),
+  ).toBeVisible();
   await expect(
     page
       .getByRole("alert")

@@ -20,7 +20,7 @@ test("operator can filter own cases and sees distinct urgent priority", async ({
   page,
 }) => {
   await signIn(page, "OPERATOR");
-  await page.goto("/operations/crm#escalations");
+  await page.goto("/operations/work#escalations");
   const accessResponse = await page.request.get("/api/operations/crm/access");
   expect(accessResponse.ok()).toBeTruthy();
   const access = (await accessResponse.json()) as { id: string; role: string };
@@ -36,12 +36,15 @@ test("operator can filter own cases and sees distinct urgent priority", async ({
     priority: string;
   }[];
   await expect(ownCards).toHaveCount(
-    escalations.filter((item) => item.owner_id === access.id).length,
+    Math.min(
+      8,
+      escalations.filter((item) => item.owner_id === access.id).length,
+    ),
   );
   await expect(page.locator(".supervisor-actions")).toHaveCount(0);
   await page.getByLabel("Ver casos").selectOption("all");
   await expect(page.locator(".escalation-card")).toHaveCount(
-    escalations.length,
+    Math.min(8, escalations.length),
   );
   const urgent = page
     .locator('.escalation-card[data-priority="urgent"]')
@@ -68,7 +71,7 @@ test("supervisor confirms assignment explicitly without stretching adjacent card
   page,
 }) => {
   await signIn(page, "SUPERVISOR");
-  await page.goto("/operations/crm#escalations");
+  await page.goto("/operations/work#escalations");
   const teamResponse = await page.request.get("/api/operations/crm/team");
   const team = (await teamResponse.json()) as {
     id: string;
@@ -94,10 +97,24 @@ test("supervisor confirms assignment explicitly without stretching adjacent card
   const card = page.locator(
     `.escalation-card[data-escalation-id="${target?.id}"]`,
   );
+  while (
+    !(await card.count()) &&
+    (await page
+      .getByRole("button", { name: /Mostrar 8 escalaciones más/ })
+      .count())
+  ) {
+    await page
+      .getByRole("button", { name: /Mostrar 8 escalaciones más/ })
+      .click();
+  }
   await expect(card).toBeVisible();
+  const firstCardId = await page
+    .locator(".escalation-card")
+    .first()
+    .getAttribute("data-escalation-id");
   const neighbor = page
     .locator(".escalation-card")
-    .nth(escalations[0]?.id === target?.id ? 1 : 0);
+    .nth(firstCardId === target?.id ? 1 : 0);
   const heightBefore = (await neighbor.boundingBox())?.height;
   await card.getByText("Acciones de supervisión").click();
   expect((await neighbor.boundingBox())?.height).toBe(heightBefore);

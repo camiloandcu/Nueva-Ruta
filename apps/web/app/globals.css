@@ -590,6 +590,44 @@ button:disabled {
 .crm-selector .filter-row label {
   min-width: min(280px, 100%);
 }
+.stage-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 1rem 0;
+}
+.stage-picker button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.4rem;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #c7d8cd;
+  background: #fff;
+  color: #274c38;
+  font-weight: 650;
+}
+.stage-picker button[aria-pressed="true"] {
+  border-color: #176e4a;
+  background: #e5f2e9;
+  color: #105536;
+}
+.stage-picker span {
+  font-variant-numeric: tabular-nums;
+  color: #536c5d;
+}
+.selection-hint {
+  color: #52675d;
+  font-size: 0.9rem;
+}
+.action-prerequisite {
+  padding: 0.85rem 1rem;
+  border: 1px solid #ccdbcc;
+  border-radius: 0.65rem;
+  background: #f2f7ef;
+  color: #244b35;
+}
 .operation-grid.crm-workspace {
   margin-top: 0;
   grid-template-columns: minmax(0, 1fr);
@@ -616,6 +654,23 @@ button:disabled {
 
 .crm-operations-panel > :not(.escalation-card, .evidence-card) {
   grid-column: 1 / -1;
+}
+.operation-jump-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.operation-jump-links a {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #c7d8cd;
+  border-radius: 999px;
+  color: #176e4a;
+  background: #f5faf5;
+  font-weight: 700;
+  text-decoration: none;
+}
+.crm-operations-panel h2[id] {
+  scroll-margin-top: 7rem;
 }
 
 .case-record-link {
@@ -992,6 +1047,145 @@ button:disabled {
 
 .quality-panel {
   overflow: hidden;
+}
+.partner-workspace {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+.partner-workspace > .quality-panel,
+.partner-review-panel {
+  grid-column: 1 / -1;
+}
+.partner-import-list .evidence-card {
+  overflow: hidden;
+}
+.long-token {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.import-identifier summary {
+  cursor: pointer;
+  color: #176e4a;
+  font-weight: 700;
+}
+.import-identifier p {
+  margin: 0.45rem 0;
+}
+.quality-panel table {
+  min-width: 880px;
+}
+.quality-panel td {
+  min-width: 8rem;
+  overflow-wrap: anywhere;
+}
+.reconciliation-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 0.9rem;
+}
+.reconciliation-list .evidence-card {
+  margin: 0;
+  min-width: 0;
+}
+.reconciliation-card h3 {
+  margin: 0 0 0.5rem;
+}
+.reconciliation-card h4 {
+  margin: 1.2rem 0 0.6rem;
+}
+.reconciliation-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+}
+.reconciliation-values div {
+  min-width: 0;
+}
+.reconciliation-values dt {
+  color: #52675d;
+  font-size: 0.82rem;
+}
+.reconciliation-values dd {
+  margin: 0.15rem 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+.reconciliation-actions {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.reconciliation-actions label,
+.review-search {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 650;
+}
+.reconciliation-actions input,
+.reconciliation-actions select,
+.review-search input {
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #bfd0c5;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #172924;
+  font: inherit;
+}
+.reconciliation-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.reconciliation-buttons button {
+  margin: 0;
+}
+.review-search {
+  max-width: 28rem;
+  margin: 1rem 0;
+}
+@media (max-width: 800px) {
+  .partner-workspace,
+  .reconciliation-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .quality-panel .table-scroll {
+    overflow: visible;
+  }
+  .quality-panel table,
+  .quality-panel tbody,
+  .quality-panel tr,
+  .quality-panel td {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+  .quality-panel .table-scroll table {
+    min-width: 0;
+  }
+  .quality-panel thead {
+    display: none;
+  }
+  .quality-panel tr {
+    margin: 0 0 0.75rem;
+    padding: 0.7rem;
+    border: 1px solid #d8e4da;
+    border-radius: 0.6rem;
+  }
+  .quality-panel td {
+    padding: 0.3rem 0;
+    border: 0;
+  }
+  .quality-panel td::before {
+    content: attr(data-label);
+    display: block;
+    color: #52675d;
+    font-size: 0.77rem;
+    font-weight: 650;
+  }
 }
 
 .content-shortcuts {

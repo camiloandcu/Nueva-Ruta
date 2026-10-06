@@ -12,9 +12,9 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("textbox", { name: "Correo electrónico" }).fill(email);
   await page.getByLabel("Contraseña").fill(password);
   await page.getByRole("button", { name: "Ingresar" }).click();
-  await expect(
-    page.getByRole("button", { name: "Cerrar sesión" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cerrar sesión" })).toBeVisible(
+    { timeout: 15_000 },
+  );
 });
 
 test("a reviewed intake event opens its exact CRM case and survives refresh", async ({
@@ -61,7 +61,10 @@ test("a reviewed intake event opens its exact CRM case and survives refresh", as
   await expect(
     page.locator(".crm-workspace .evidence-card").first(),
   ).toContainText(label);
-  await page.getByLabel("Etapa").selectOption("new");
+  await page
+    .getByRole("group", { name: "Etapas comerciales" })
+    .getByRole("button", { name: /Nuevo/ })
+    .click();
   await expect(
     page.locator(".crm-workspace .evidence-card").first(),
   ).toContainText(label);
@@ -78,9 +81,9 @@ test("newly ingested cases receive a label and invalid deep links never select a
 }) => {
   await page.goto("/operations/review");
   await page.getByRole("button", { name: "Ingresar mensaje" }).click();
-  await expect(
-    page.getByText("Entrada registrada y clasificada"),
-  ).toBeVisible();
+  await expect(page.getByText("Entrada registrada y clasificada")).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(page.locator(".case-identity strong")).toHaveText(
     /^LEAD-\d{3,}$/,
   );

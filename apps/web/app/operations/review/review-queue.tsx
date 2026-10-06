@@ -445,9 +445,7 @@ export default function ReviewQueue() {
                 <div className="next-action">
                   <strong>Requiere atención humana</strong>
                   <p>La tarea, su prioridad y vencimiento están en CRM.</p>
-                  <Link href="/operations/crm#escalations">
-                    Ver escalaciones →
-                  </Link>
+                  <Link href="/operations/work">Ver escalaciones →</Link>
                 </div>
               ) : (
                 <p>Esta decisión no genera borrador de respuesta.</p>

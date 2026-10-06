@@ -1,20 +1,19 @@
 import { createSupabaseServerClient } from "@/lib/auth/server";
 
-import CrmOperations from "./crm-operations";
+import CrmOperations from "../crm/crm-operations";
 
-export default async function CrmPage() {
+export default async function WorkPage() {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getSession();
   return (
     <main className="operations-shell">
-      <div className="eyebrow">Automatización comercial</div>
-      <h1>Casos CRM</h1>
+      <h1>Operación comercial</h1>
       <p>
-        Selecciona un caso, identifica su etapa y completa la siguiente acción
-        permitida. Cada decisión conserva su evidencia.
+        Atiende escalaciones, recuperación, borradores de seguimiento y entregas
+        al socio. Cada registro enlaza con su caso cuando existe uno.
       </p>
       {data.session ? (
-        <CrmOperations />
+        <CrmOperations view="operation" />
       ) : (
         <section className="panel">Autenticación requerida.</section>
       )}
