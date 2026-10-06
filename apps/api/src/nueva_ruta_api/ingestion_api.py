@@ -61,7 +61,7 @@ async def redacted_leads(_: Operator, settings: Config) -> list[dict[str, Any]]:
         batch = decision_ids[offset : offset + 100]
         rows = await store.select_rows(
             "extracted_lead_fields",
-            select="decision_id,approved_fields,source",
+            select="decision_id,approved_fields,source,corrected_at",
             filters={"decision_id": f"in.({','.join(batch)})"},
         )
         fields_by_decision.update({str(row["decision_id"]): row for row in rows})
@@ -69,6 +69,7 @@ async def redacted_leads(_: Operator, settings: Config) -> list[dict[str, Any]]:
         extracted = fields_by_decision.get(str(lead["decision_id"]))
         lead["extracted_fields"] = extracted["approved_fields"] if extracted else None
         lead["extraction_source"] = extracted["source"] if extracted else None
+        lead["extraction_corrected_at"] = extracted["corrected_at"] if extracted else None
     return leads
 
 

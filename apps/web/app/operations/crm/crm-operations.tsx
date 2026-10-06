@@ -7,6 +7,9 @@ import {
   CrmMessageEvidence,
   type MessageEvidence,
 } from "./crm-message-evidence";
+import ExtractedFieldsEditor, {
+  type ExtractedFields,
+} from "./extracted-fields-editor";
 import {
   channelLabel,
   dispositionLabel,
@@ -26,6 +29,9 @@ type Lead = {
   redacted_body: string | null;
   consent_status: string;
   source_channel: string | null;
+  extracted_fields: ExtractedFields | null;
+  extraction_source: "deterministic" | "ai_assisted" | null;
+  extraction_corrected_at: string | null;
 };
 type Escalation = {
   id: string;
@@ -512,7 +518,9 @@ export default function CrmOperations({
           {loadingSection("leads")}
         </section>
       )}
-      <div className="operation-grid crm-workspace">
+      <div
+        className={`operation-grid crm-workspace ${view === "cases" ? "crm-cases" : ""}`}
+      >
         {view === "cases" && (
           <section className="panel">
             <h2>Caso seleccionado</h2>
@@ -548,6 +556,15 @@ export default function CrmOperations({
                     </Link>
                   )}
                   {lead.redacted_body && <p>{lead.redacted_body}</p>}
+                  {lead.source_event_id && (
+                    <ExtractedFieldsEditor
+                      leadId={lead.id}
+                      fields={lead.extracted_fields}
+                      source={lead.extraction_source}
+                      correctedAt={lead.extraction_corrected_at}
+                      onSaved={() => setRefreshKey((value) => value + 1)}
+                    />
+                  )}
                   <p>Teléfono: {lead.fictional_phone ?? "No disponible"}</p>
                   {lead.opted_out && (
                     <p>Contacto revocado · transferencia bloqueada</p>
