@@ -2,7 +2,9 @@
 
 ## Scope
 
-The harness submits at least 200 unique fictional inbound events through authenticated FastAPI, replays a bounded subset, and polls results until each unique source event is queryable or a 60-second result-visibility timeout is reached. Ingestion is synchronous and has no separate async queue, so async backlog drain is explicitly reported as not applicable; result-visibility time is recorded separately. It requires deterministic AI mode, uses the seeded local operator, does not print secrets, and has no external consumer or AI traffic.
+The harness submits at least 200 unique fictional inbound events through authenticated FastAPI, replays a bounded subset, and polls results until each unique source event is queryable or a 60-second result-visibility timeout is reached. 
+
+Ingestion is synchronous and has no separate async queue, so async backlog drain is explicitly reported as not applicable; result-visibility time is recorded separately.
 
 Run after local identities and migrations are ready:
 
@@ -10,7 +12,12 @@ Run after local identities and migrations are ready:
 make load-test
 ```
 
-The wrapper starts local Supabase if needed (without resetting the database or rewriting Auth identities) and creates a temporary, isolated API container with deterministic AI forced and no OpenAI key. It uses an already-bootstrapped local synthetic operator identity and removes only that temporary container when the command exits; it does not start or alter the ordinary app stack. No `.env` edit is needed. The script exits nonzero on failed requests, missing results or unresolved drain work. Each output includes the short synthetic run ID, start/end UTC timestamps, conditions, successful unique results, request errors/losses, replay count/idempotency evidence, throughput, p50/p95 observed request latency, ingest duration and result-visibility drain duration. Do not infer production capacity or extrapolate to external networks from this local result.
+The wrapper starts local Supabase if needed (without resetting the database or rewriting Auth identities) and creates a temporary, isolated API container.
+
+It uses an already-bootstrapped local synthetic operator identity and removes only that temporary container when the command exits; it does not start or alter the ordinary app stack. 
+
+The script exits nonzero on failed requests, missing results or unresolved drain work. Each output includes the short synthetic run ID, start/end UTC timestamps, conditions, successful unique results, request errors/losses, replay count/idempotency evidence, throughput, p50/p95 observed request latency, ingest duration and result-visibility drain duration. 
+
 
 ## Results
 
@@ -22,4 +29,12 @@ Measured on the local WSL2 development environment:
 
 Run ID: `a0c2be4db662`. All 200 unique results became queryable; initial and replay request errors were zero; no unresolved results remained after the 60-second limit. The 220 inbound requests produced 220 latency samples.
 
-Conditions and caveats: the API image was warm/cached. The run used the existing local Supabase fixture database without reset; the generated synthetic events remain in it. Host resource measurements were collected immediately after the run, not sampled throughout; low free memory and fully used swap make the timings machine-specific. Exact start/end timestamps were not emitted by this first run; the harness now records them for future runs. Node `24.18.0` and pnpm `11.17.0` were installed on the host but not in the API container. The target of 200 leads/hour remains a design target; this local API run does not support production capacity claims.
+Conditions and caveats: 
+
+- The API image was warm/cached. 
+- The run used the existing local Supabase fixture database without reset 
+- The generated synthetic events remain in it. Host resource measurements were collected immediately after the run, not sampled throughout 
+- Low free memory and fully used swap make the timings machine-specific. 
+- Exact start/end timestamps were not emitted by this first run; the harness now records them for future runs. 
+- Node `24.18.0` and pnpm `11.17.0` were installed on the host but not in the API container. 
+- The target of 200 leads/hour remains a design target; this local API run does not support production capacity claims.
