@@ -1,6 +1,6 @@
 # Nueva Ruta Ops
 
-Nueva Ruta Ops is a Spanish-first operations prototype for fictional debt-management lead intake. It demonstrates traceable creator attribution, redacted lead triage, human-reviewed responses, controlled partner handoff, dirty-data reconciliation, operational reporting, and evidence-linked content planning. All fixtures and partner activity are synthetic; this is not a consumer financial service or production system.
+Nueva Ruta Ops is an operations prototype for fictional debt-management lead intake designed around Hispanic communities living in the United States. It demonstrates traceable creator attribution, redacted lead triage, human-reviewed responses, controlled partner handoff, dirty-data reconciliation, operational reporting, and evidence-linked content planning. All fixtures and partner activity are synthetic; this is **NOT** a consumer financial service or production system.
 
 ## Product walkthrough
 
@@ -16,8 +16,8 @@ flowchart LR
     db --> reports[Reporting, reconciliation, content evidence]
 ```
 
-- Operators move through **Bandeja → Casos → Operación → Resultados**, with case-specific evidence and clearly labeled global queues. Every case has a stable `LEAD-…` label; its UUID remains available for audit.
-- Supervisors publish versioned rules, approve transfers and review actions, manage recovery, and reset synthetic demo state.
+- Operators move through **Bandeja → Casos → Operación → Resultados**, with case-specific evidence and clearly labeled global queues. 
+- Supervisors publish versioned rules, approve transfers and review actions and manage recovery.
 - Analysts see attribution-safe reporting and reconciliation evidence.
 - No substantive message or partner transfer bypasses human authorization.
 
@@ -34,7 +34,7 @@ make up
 make verify
 ```
 
-Keep AI set to `deterministic` for a no-provider demo. Never paste real lead information or reuse credentials. `make up` initializes local Supabase Auth/Postgres, bootstraps the three synthetic roles, builds the application containers, and waits for service health.
+Keep AI set to `deterministic` for a no-provider demo. `make up` initializes local Supabase Auth/Postgres, bootstraps the three synthetic roles, builds the application containers, and waits for service health.
 
 | Command | Purpose |
 | --- | --- |
@@ -53,25 +53,22 @@ Local URLs: web <http://localhost:3000>, API docs <http://localhost:8000/docs>, 
 - All records are fictional. Seeded demo roles use passwords supplied in ignored `.env`; do not commit or share them publicly.
 - Next.js and n8n use authenticated FastAPI contracts for business data. Supabase is accessed directly by the web layer only for its server-managed auth session.
 - Supabase SQL migrations are the only schema history. `make reset` is for local developer setup; the product reset is supervisor-gated and audited.
-- AI is optional. Deterministic processing is the no-key, reproducible default. Any optional model receives redacted text and can only assist with reviewed drafts; it cannot decide real suitability, publish, or transfer.
-- This prototype is not approved for real consumers, real financial intake, real partner connectivity, or production traffic.
+- AI is optional. Deterministic processing is the no-key, reproducible default. Any optional model receives redacted text and can assist with reviewed drafts.
 
 ## Temporary hosted demo
 
-WI-009 defines a short-lived, authenticated synthetic demo on Railway + Supabase Cloud, approved up to USD 7 total and expiring **2026-10-09 at 23:59 America/Bogota**. It remains conditional on a verifiable cost path within that cap. Only the web UI may be public; API, n8n, and simulator remain private. No live AI or real lead data is used. The local stack remains authoritative. See [temporary demo operations](docs/09_TEMPORARY_DEMO.md).
+A short-lived, authenticated synthetic demo lives on Railway + Supabase Cloud, expiring **2026-10-09 at 23:59 America/Bogota**. 
 
-The authenticated [temporary demo](https://web-demo-ffe2.up.railway.app/) serves Intake, case-centered CRM, reconciliation, and reporting with inline enrollment origin. Access requires an assigned demo account; local `.env` credentials are not interchangeable with hosted credentials.
+Only the web UI may be public; API, n8n, and simulator remain private. No live AI or real lead data is used. The local stack remains authoritative. See [temporary demo operations](docs/09_TEMPORARY_DEMO.md).
+
+The authenticated [temporary demo](https://web-demo-ffe2.up.railway.app/) serves Intake, case-centered CRM, reconciliation, and reporting with inline enrollment origin. Access requires an assigned demo account.
 
 ## Documentation
 
 - [Architecture and operations](docs/07_ARCHITECTURE_OPERATIONS.md)
-- [Compliance and AI boundary](docs/planning/06_COMPLIANCE_AND_AI.md) · [AI-use guide](docs/08_AI_USE.md)
+- [AI-use guide](docs/08_AI_USE.md)
 - [Partner data cleaning and reconciliation](docs/10_PARTNER_DATA_CLEANING.md)
 - [Synthetic load method and report](docs/11_SCALE_REPORT.md)
-- [Product and requirements index](docs/planning/00_INDEX.md) · [work items](docs/planning/08_WORK_ITEMS.md) · [decision log](docs/planning/07_DECISIONS.md)
+- [Product and requirements index](docs/planning/00_INDEX.md)
 - [Implementation verification reports](docs/implementation/)
 - [n8n workflow export/import notes](infra/n8n/workflows/README.md)
-
-## Current scope
-
-Implemented WI-001–WI-008 cover local runtime and auth, deterministic synthetic domain data, governed rules, lead ingestion and drafts, CRM dispositions and partner delivery recovery, partner import and reconciliation, reporting, and creator content planning. WI-009 is release hardening and temporary-demo readiness—not another customer-facing workflow. Hosted availability and measured results are recorded only after they are verified.

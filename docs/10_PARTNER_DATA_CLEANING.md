@@ -20,6 +20,3 @@ Partner files are treated as source evidence, not as a clean replacement for Nue
 - Report totals include unmatched/conflicted categories; commission proxy excludes uncertain links.
 - Partner data and simulator responses are synthetic in this prototype. No real partner export is authorized.
 
-## Review evidence
-
-See [WI-006 implementation verification](implementation/06_WI-006_VERIFICATION.md), the [partner-import workflow](../infra/n8n/workflows/README.md), and the [metric definitions](planning/05_DATA_AND_REPORTING.md). Tests include dirty values, duplicates, missing fields, incompatible creator evidence, ambiguous candidates, and analyst decision/audit behavior.

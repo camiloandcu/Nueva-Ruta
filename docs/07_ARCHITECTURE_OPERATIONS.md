@@ -47,9 +47,7 @@ API and simulator emit one JSON request record with correlation ID, method, rout
 
 ## Temporary hosted topology
 
-WI-009 permits a temporary, synthetic Railway + Supabase Cloud demonstration only, under [ADR-025](planning/07_DECISIONS.md#adr-025--temporary-hosted-demo-ceiling-and-expiry). Public traffic terminates at the authenticated web UI. API, n8n and simulator use private service networking; Supabase is accessed by the app, not exposed through a Railway public database port. Hosted secrets live in managed variables and never in Git, build arguments, n8n JSON or logs. AI remains deterministic.
-
-Hosting is conditional: if the combined charges through the expiry cannot be held at or below USD 7, do not provision. The exact expiry is 2026-10-09 23:59 America/Bogota. Stop Railway services and pause Supabase without deleting project data; verify the public URL no longer serves. See [temporary demo operations](09_TEMPORARY_DEMO.md) for actual resource and cost evidence as it becomes available.
+WI-009 permits a temporary, synthetic Railway + Supabase Cloud demonstration only, under [ADR-025](planning/07_DECISIONS.md#adr-025--temporary-hosted-demo-ceiling-and-expiry). Public traffic terminates at the authenticated web UI. API, n8n and simulator use private service networking; Supabase is accessed by the app, not exposed through a Railway public database port. Hosted secrets live in managed variables and never in Git, build arguments, n8n JSON or logs. 
 
 ## Known limitations
 
